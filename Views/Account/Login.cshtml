@@ -1,0 +1,138 @@
+@model RegistrDN.Models.ViewModels.LoginViewModel
+
+@{
+    ViewData["Title"] = "Вход в систему";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - RegistrDN</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        body {
+            background: #f0f2f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .login-container {
+            max-width: 400px;
+            width: 100%;
+            background: #fff;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid #e2e8f0;
+        }
+        .login-container .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .login-container .logo i {
+            font-size: 48px;
+            color: #242424;
+        }
+        .login-container .logo h2 {
+            font-weight: 700;
+            margin-top: 8px;
+            color: #1a202c;
+        }
+        .login-container .logo small {
+            color: #718096;
+        }
+        .login-container .form-group {
+            margin-bottom: 16px;
+        }
+        .login-container .form-group label {
+            font-weight: 500;
+            font-size: 14px;
+            color: #4a5568;
+        }
+        .login-container .form-group input {
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            padding: 10px 14px;
+            font-size: 14px;
+        }
+        .login-container .form-group input:focus {
+            border-color: #242424;
+            box-shadow: 0 0 0 3px rgba(36,36,36,0.1);
+        }
+        .login-container .btn-primary-custom {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .login-container .text-muted {
+            color: #718096;
+        }
+        .login-container .register-link {
+            text-align: center;
+            margin-top: 16px;
+        }
+        .login-container .register-link a {
+            color: #242424;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .login-container .register-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <i class="fas fa-heartbeat"></i>
+            <h2>RegistrDN</h2>
+            <small>Система управления диспансерным наблюдением</small>
+        </div>
+
+        <form asp-action="Login" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+            <div class="form-group">
+                <label asp-for="Email">Email</label>
+                <input asp-for="Email" class="form-control" placeholder="user@example.com" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Password">Пароль</label>
+                <input asp-for="Password" class="form-control" placeholder="••••••••" type="password" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <div class="form-group form-check">
+                <input asp-for="RememberMe" class="form-check-input" />
+                <label asp-for="RememberMe" class="form-check-label">  Запомнить меня</label>
+            </div>
+
+            <button type="submit" class="btn-primary-custom">
+                <i class="fas fa-sign-in-alt"></i> Войти
+            </button>
+
+            <div class="register-link">
+                Нет аккаунта? Обратитесь в отдел ИАО ТФОМС РХ!
+            </div>
+        </form>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+</body>
+</html>

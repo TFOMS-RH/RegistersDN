@@ -1,0 +1,71 @@
+@model RegistrDN.Models.ViewModels.ProfileViewModel
+
+@{
+    ViewData["Title"] = "Профиль пользователя";
+}
+
+<div class="page-header">
+    <div>
+        <h1>👤 Профиль пользователя</h1>
+        <span class="subtitle">Ваша личная информация</span>
+    </div>
+    <div class="page-actions">
+        <form asp-action="Logout" method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn-outline-custom">
+                <i class="fas fa-sign-out-alt"></i> Выйти
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="table-wrapper" style="padding: 24px;">
+            <h5><i class="fas fa-info-circle" style="color:#242424;"></i> Основная информация</h5>
+            <hr />
+            <div class="row mb-3">
+                <div class="col-md-4"><strong>Email</strong></div>
+                <div class="col-md-8">@Model.Email</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4"><strong>ФИО</strong></div>
+                <div class="col-md-8">@Model.FullName</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4"><strong>Код МО</strong></div>
+                <div class="col-md-8">@(!string.IsNullOrEmpty(Model.HospitalCode) ? Model.HospitalCode : "Не указан")</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4"><strong>Код региона</strong></div>
+                <div class="col-md-8">@(!string.IsNullOrEmpty(Model.RegionCode) ? Model.RegionCode : "Не указан")</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4"><strong>Роли</strong></div>
+                <div class="col-md-8">
+                    @foreach (var role in Model.Roles.Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        <span class="badge-type" style="background:#e2e8f0; color:#1a202c; margin-right:4px;">@role</span>
+                    }
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4"><strong>Дата регистрации</strong></div>
+                <div class="col-md-8">@Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="table-wrapper" style="padding: 24px;">
+            <h5><i class="fas fa-shield-alt" style="color:#242424;"></i> Доступные разделы</h5>
+            <hr />
+            <ul class="list-unstyled">
+                <li class="py-2"><i class="fas fa-check-circle text-success"></i> Импорт данных</li>
+                <li class="py-2"><i class="fas fa-check-circle text-success"></i> Журнал и экспорт</li>
+                <li class="py-2"><i class="fas fa-check-circle text-success"></i> Регистр ДН</li>
+                <li class="py-2"><i class="fas fa-check-circle text-success"></i> Статистика</li>
+            </ul>
+        </div>
+    </div>
+</div>

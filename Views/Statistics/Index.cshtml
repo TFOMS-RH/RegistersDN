@@ -1,0 +1,376 @@
+@{
+    ViewData["Title"] = "Статистика и дашборды";
+}
+
+<div class="page-header">
+    <div>
+        <h1>Статистика и дашборды</h1>
+        <span class="subtitle">Визуализация данных системы RegistrDN</span>
+    </div>
+    <div class="page-actions">
+        <button class="btn-primary-custom" onclick="location.reload()">
+            <i class="fas fa-sync"></i> Обновить
+        </button>
+    </div>
+</div>
+
+<!-- Фильтр по периоду -->
+<div class="filter-bar">
+    <div class="filter-row">
+        <div class="filter-group" style="flex: 1;">
+            <label>Период</label>
+            <select id="periodFilter">
+                <option value="">Все периоды</option>
+            </select>
+        </div>
+        <div class="filter-actions">
+            <button class="btn-primary-custom" id="applyFilters">
+                <i class="fas fa-filter"></i> Применить
+            </button>
+            <button class="btn-outline-custom" id="resetFilters">
+                <i class="fas fa-undo"></i> Сбросить
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Загрузка -->
+<div id="loadingIndicator" class="text-center" style="padding: 60px 0;">
+    <i class="fas fa-spinner fa-spin" style="font-size: 48px; color: #242424;"></i>
+    <p class="mt-3 text-muted">Загрузка данных...</p>
+</div>
+
+<!-- Дашборд -->
+<div id="dashboardContent" style="display: none;">
+
+    <!-- Карточки статистики -->
+    <div class="stat-grid" id="statsCards">
+        <div class="stat-card blue">
+            <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+            <div class="stat-label">Всего документов</div>
+            <div class="stat-value" id="statTotalDocs">0</div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="stat-label">Успешно загружено</div>
+            <div class="stat-value" id="statSuccess">0</div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+            <div class="stat-label">С ошибками</div>
+            <div class="stat-value" id="statErrors">0</div>
+        </div>
+        <div class="stat-card yellow">
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <div class="stat-label">Уникальных пациентов</div>
+            <div class="stat-value" id="statPatients">0</div>
+        </div>
+    </div>
+
+    <!-- Графики -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+
+        <div class="table-wrapper" style="padding: 16px;">
+            <h6 style="margin-bottom: 10px; font-weight: 600; font-size: 13px; color: var(--text-secondary);">
+                <i class="fas fa-chart-line" style="color:#242424;"></i> Динамика загрузок по месяцам
+            </h6>
+            <div style="height: 160px;">
+                <canvas id="monthlyChart"></canvas>
+            </div>
+        </div>
+
+        <div class="table-wrapper" style="padding: 16px;">
+            <h6 style="margin-bottom: 10px; font-weight: 600; font-size: 13px; color: var(--text-secondary);">
+                <i class="fas fa-chart-bar" style="color:#242424;"></i> Топ диагнозов (МКБ-10)
+            </h6>
+            <div style="height: 160px;">
+                <canvas id="diagnosisChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+
+        <div class="table-wrapper" style="padding: 16px;">
+            <h6 style="margin-bottom: 10px; font-weight: 600; font-size: 13px; color: var(--text-secondary);">
+                <i class="fas fa-chart-pie" style="color:#242424;"></i> Статус файлов
+            </h6>
+            <div style="height: 160px;">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+
+        <div class="table-wrapper" style="padding: 16px;">
+            <h6 style="margin-bottom: 10px; font-weight: 600; font-size: 13px; color: var(--text-secondary);">
+                <i class="fas fa-hospital" style="color:#242424;"></i> Топ МО по загрузкам
+            </h6>
+            <div style="height: 160px;">
+                <canvas id="moChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(document).ready(function() {
+
+            // ==========================================
+            // 1. ЗАГРУЗКА ПЕРИОДОВ
+            // ==========================================
+            $.get('@Url.Action("GetPeriods", "Statistics")', function(response) {
+                if (response.periods && response.periods.length > 0) {
+                    const select = $('#periodFilter');
+                    select.empty();
+                    select.append('<option value="">Все периоды</option>');
+                    response.periods.forEach(function(p) {
+                        select.append(`<option value="${p}">${p}</option>`);
+                    });
+                }
+            });
+
+            // ==========================================
+            // 2. ЗАГРУЗКА ДАННЫХ ДАШБОРДА
+            // ==========================================
+            let charts = {};
+
+            function loadDashboard(period) {
+                $('#loadingIndicator').show();
+                $('#dashboardContent').hide();
+
+                // Добавляем параметр периода в запрос
+                let url = '@Url.Action("GetDashboardData", "Statistics")';
+                if (period) {
+                    url += '?period=' + encodeURIComponent(period);
+                }
+
+                $.get(url, function(response) {
+                    $('#loadingIndicator').hide();
+
+                    if (!response.success) {
+                        $('#dashboardContent').html(`
+                                    <div class="alert alert-danger">
+                                        <i class="fas fa-exclamation-circle"></i> ${response.message}
+                                    </div>
+                                `).show();
+                        return;
+                    }
+
+                    const data = response.data;
+
+                    // Обновляем карточки
+                    $('#statTotalDocs').text(data.totalDocuments || 0);
+                    $('#statSuccess').text(data.successCount || 0);
+                    $('#statErrors').text(data.errorCount || 0);
+                    $('#statPatients').text(data.uniquePatients || 0);
+
+                    // Уничтожаем старые графики
+                    Object.values(charts).forEach(chart => {
+                        if (chart) chart.destroy();
+                    });
+                    charts = {};
+
+                    // Создаем новые графики
+                    createMonthlyChart(data.monthlyStats);
+                    createDiagnosisChart(data.topDiagnoses);
+                    createStatusChart(data.statusStats);
+                    createMoChart(data.moStats);
+
+                    $('#dashboardContent').show();
+                }).fail(function() {
+                    $('#loadingIndicator').hide();
+                    $('#dashboardContent').html(`
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-circle"></i> Ошибка загрузки данных
+                                </div>
+                            `).show();
+                });
+            }
+
+            // ==========================================
+            // 3. СОЗДАНИЕ ГРАФИКОВ
+            // ==========================================
+
+            function createMonthlyChart(data) {
+                const ctx = document.getElementById('monthlyChart').getContext('2d');
+                const labels = data ? data.map(d => d.monthName) : [];
+                const values = data ? data.map(d => d.count) : [];
+
+                charts.monthly = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Количество загрузок',
+                            data: values,
+                            borderColor: '#242424',
+                            backgroundColor: 'rgba(36, 36, 36, 0.08)',
+                            fill: true,
+                            tension: 0.3,
+                            pointBackgroundColor: '#242424',
+                            pointRadius: 3,
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1, font: { size: 10 } }
+                            },
+                            x: {
+                                ticks: { font: { size: 10 }, maxRotation: 45, autoSkip: true }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function createDiagnosisChart(data) {
+                const ctx = document.getElementById('diagnosisChart').getContext('2d');
+                const labels = data ? data.slice(0, 7).map(d => d.diagnosisCode) : [];
+                const values = data ? data.slice(0, 7).map(d => d.count) : [];
+
+                const colors = ['#242424', '#4a5568', '#718096', '#a0aec0', '#cbd5e0', '#e2e8f0', '#edf2f7'];
+
+                charts.diagnosis = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Количество пациентов',
+                            data: values,
+                            backgroundColor: colors.slice(0, labels.length),
+                            borderRadius: 3,
+                            barThickness: 24
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1, font: { size: 10 } }
+                            },
+                            x: {
+                                ticks: { font: { size: 10 }, maxRotation: 45, autoSkip: true }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function createStatusChart(data) {
+                const ctx = document.getElementById('statusChart').getContext('2d');
+
+                charts.status = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Успешно', 'Ошибки'],
+                        datasets: [{
+                            data: [
+                                data ? data.successCount : 0,
+                                data ? data.errorCount : 0
+                            ],
+                            backgroundColor: ['#38a169', '#e53e3e'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 12,
+                                    usePointStyle: true,
+                                    pointStyle: 'circle',
+                                    font: { size: 11 }
+                                }
+                            }
+                        },
+                        cutout: '60%'
+                    }
+                });
+            }
+
+            function createMoChart(data) {
+                const ctx = document.getElementById('moChart').getContext('2d');
+                const labels = data ? data.slice(0, 7).map(d => d.moCode) : [];
+                const values = data ? data.slice(0, 7).map(d => d.documentCount) : [];
+
+                const colors = ['#242424', '#4a5568', '#718096', '#a0aec0', '#cbd5e0', '#e2e8f0', '#edf2f7'];
+
+                charts.mo = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Количество документов',
+                            data: values,
+                            backgroundColor: colors.slice(0, labels.length),
+                            borderRadius: 3,
+                            barThickness: 24
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1, font: { size: 10 } }
+                            },
+                            x: {
+                                ticks: { font: { size: 10 }, maxRotation: 45, autoSkip: true }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // ==========================================
+            // 4. ФИЛЬТРАЦИЯ (ИСПРАВЛЕННАЯ)
+            // ==========================================
+            $('#applyFilters').on('click', function() {
+                const period = $('#periodFilter').val();
+                loadDashboard(period);
+            });
+
+            $('#resetFilters').on('click', function() {
+                $('#periodFilter').val('');
+                loadDashboard('');
+            });
+
+            // Фильтр по Enter
+            $('#periodFilter').on('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    $('#applyFilters').click();
+                }
+            });
+
+            // ==========================================
+            // 5. ИНИЦИАЛИЗАЦИЯ
+            // ==========================================
+            loadDashboard('');
+
+        });
+    </script>
+}

@@ -1,0 +1,171 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - RegistrDN</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- ==========================================
+    ХЕДЕР
+    ========================================== -->
+    <header class="app-header">
+        <a href="/" class="logo">
+            <i class="fas fa-heartbeat"></i>
+            <span>RegistrDN</span>
+            <small>v1.1.0</small>
+        </a>
+        <button class="menu-toggle" id="menuToggle" aria-label="Открыть меню">
+            <i class="fas fa-bars"></i>
+        </button>
+    </header>
+
+    <!-- ==========================================
+    ВЫПАДАЮЩЕЕ МЕНЮ
+    ========================================== -->
+    <div class="menu-overlay" id="menuOverlay"></div>
+
+    <div class="menu-panel" id="menuPanel">
+        <!-- Работа с данными -->
+        <div class="menu-section">
+            <div class="menu-section-title">Работа с данными</div>
+            <a asp-controller="Import" asp-action="Index" class="menu-item" data-page="import">
+                <i class="fas fa-upload"></i> Импорт
+            </a>
+            <a asp-controller="Export" asp-action="Index" class="menu-item" data-page="export">
+                <i class="fas fa-file-alt"></i> Журнал и экспорт
+                <span class="badge" id="docCount">0</span>
+            </a>
+            <a asp-controller="Statistics" asp-action="Index" class="menu-item" data-page="statistics">
+                <i class="fas fa-chart-bar"></i> Статистика
+            </a>
+        </div>
+        <div class="menu-divider"></div>
+
+        <!-- Регистр ДН -->
+        <div class="menu-section">
+            <div class="menu-section-title">Регистр ДН</div>
+            <a asp-controller="Patients" asp-action="Index" class="menu-item" data-page="patients">
+                <i class="fas fa-list"></i> Регистр ДН
+                <span class="badge" id="patientsCount">0</span>
+            </a>
+        </div>
+
+        <div class="menu-divider"></div>
+
+       <!-- Администрирование -->
+        <div class="menu-section">
+            <div class="menu-section-title">Администрирование</div>
+            <a asp-controller="Account" asp-action="Profile" class="menu-item" data-page="profile">
+                <i class="fas fa-user-cog"></i> Профиль
+            </a>
+            @if (User.IsInRole("Admin"))
+            {
+                <a asp-controller="Admin" asp-action="Users" class="menu-item" data-page="users">
+                    <i class="fas fa-users"></i> Пользователи
+                </a>
+                <a asp-controller="Admin" asp-action="Register" class="menu-item" data-page="register-user">
+                    <i class="fas fa-user-plus"></i> Добавить пользователя
+                </a>
+            }
+            <form asp-controller="Account" asp-action="Logout" method="post" style="margin:0;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="menu-item danger" style="background:none; border:none; width:100%; text-align:left; font-size:14px; padding:10px 24px; cursor:pointer;">
+                    <i class="fas fa-sign-out-alt"></i> Выйти
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==========================================
+    ОСНОВНОЙ КОНТЕНТ
+    ========================================== -->
+    <main class="container-main">
+        @RenderBody()
+    </main>
+
+    <!-- ==========================================
+    SCRIPTS
+    ========================================== -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+
+    <script>
+        // ============================================
+        // ВЫПАДАЮЩЕЕ МЕНЮ
+        // ============================================
+        (function() {
+            const menuToggle = document.getElementById('menuToggle');
+            const menuPanel = document.getElementById('menuPanel');
+            const menuOverlay = document.getElementById('menuOverlay');
+            let isMenuOpen = false;
+
+            function toggleMenu() {
+                isMenuOpen = !isMenuOpen;
+                menuPanel.classList.toggle('open', isMenuOpen);
+                menuOverlay.classList.toggle('active', isMenuOpen);
+                document.body.style.overflow = isMenuOpen ? 'hidden' : '';
+            }
+
+            if (menuToggle) {
+                menuToggle.addEventListener('click', toggleMenu);
+            }
+
+            if (menuOverlay) {
+                menuOverlay.addEventListener('click', toggleMenu);
+            }
+
+            // Активный пункт меню
+            const menuItems = document.querySelectorAll('.menu-item');
+            const currentUrl = window.location.pathname;
+
+            menuItems.forEach(item => {
+                const href = item.getAttribute('href');
+                if (href && href !== '#' && currentUrl.includes(href)) {
+                    item.classList.add('active');
+                }
+
+                item.addEventListener('click', function(e) {
+                    if (this.getAttribute('href') !== '#') {
+                        if (window.innerWidth <= 768) {
+                            toggleMenu();
+                        }
+                    }
+                });
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && isMenuOpen) {
+                    toggleMenu();
+                }
+            });
+
+            // Обновление счетчика документов
+            function updateDocCount() {
+                $.get('/Export/GetCount', function(data) {
+                    const badge = document.getElementById('docCount');
+                    if (badge) {
+                        badge.textContent = data.count || 0;
+                    }
+                }).fail(function() {
+                    const badge = document.getElementById('docCount');
+                    if (badge) {
+                        badge.style.display = 'none';
+                    }
+                });
+            }
+
+            updateDocCount();
+        })();
+    </script>
+</body>
+</html>

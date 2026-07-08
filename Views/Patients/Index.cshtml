@@ -1,0 +1,430 @@
+@model IEnumerable<RegistrDN.Models.ViewModels.PatientViewModel>
+
+@{
+    ViewData["Title"] = "Регистр ДН";
+    var periods = ViewBag.Periods as List<string> ?? new List<string>();
+}
+
+<!-- Заголовок страницы -->
+<div class="page-header">
+    <div>
+        <h1>Регистр ДН</h1>
+        <span class="subtitle">Список пациентов, состоящих на диспансерном наблюдении</span>
+    </div>
+    <div class="page-actions">
+        <button class="btn-primary-custom" onclick="location.reload()">
+            <i class="fas fa-sync"></i> Обновить
+        </button>
+    </div>
+</div>
+
+<!-- Сообщение если нет данных -->
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> Нет данных о пациентах. Загрузите файлы через <a asp-controller="Import" asp-action="Index">импорт</a>.
+    </div>
+}
+else
+{
+    <!-- Статистика -->
+    <div class="stat-grid">
+        <div class="stat-card blue">
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <div class="stat-label">Всего пациентов</div>
+            <div class="stat-value">@ViewBag.TotalCount</div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="stat-label">На ДН</div>
+            <div class="stat-value">@Model.Count(x => x.DateDnOut == null)</div>
+        </div>
+        <div class="stat-card yellow">
+            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+            <div class="stat-label">Сняты с ДН</div>
+            <div class="stat-value">@Model.Count(x => x.DateDnOut != null)</div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+            <div class="stat-label">Уникальных диагнозов</div>
+            <div class="stat-value">@Model.Select(x => x.DiagCode).Distinct().Count()</div>
+        </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="filter-bar">
+        <div class="filter-row">
+            <div class="filter-group" style="flex: 2;">
+                <label>Поиск</label>
+                <input type="text" placeholder="ЕНП, диагноз..." id="searchInput" value="@Context.Request.Query["search"]">
+            </div>
+            <div class="filter-group">
+                <label>Период</label>
+                <select id="periodFilter">
+                    <option value="">Все периоды</option>
+                    @foreach (var period in periods)
+                    {
+                        <option value="@period" selected="@(Context.Request.Query["period"] == period)">@period</option>
+                    }
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Код МО</label>
+                <input type="text" placeholder="Код МО" id="hospitalFilter" value="@Context.Request.Query["hospitalCode"]">
+            </div>
+            <div class="filter-actions">
+                <button class="btn-primary-custom" id="applyFilters">
+                    <i class="fas fa-search"></i> Найти
+                </button>
+                <button class="btn-outline-custom" id="resetFilters">
+                    <i class="fas fa-undo"></i> Сбросить
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MAIN LAYOUT: ТАБЛИЦА + КАРТОЧКА СПРАВА    -->
+    <!-- ========================================== -->
+    <div class="main-layout">
+
+        <!-- ЛЕВАЯ ЧАСТЬ: ТАБЛИЦА -->
+        <div class="table-wrapper">
+            <div class="table-toolbar">
+                <span class="count">Найдено пациентов: <strong id="recordCount">@Model.Count()</strong></span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table" id="patientsTable">
+                    <thead>
+                        <tr>
+                            <th>№</th>
+                            <th>ЕНП</th>
+                            <th>Диагноз (МКБ-10)</th>
+                            <th>Дата постановки на ДН</th>
+                            <th>Дата снятия с ДН</th>
+                            <th>Код МО</th>
+                            <th>Статус</th>
+                            <th style="width:40px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            int counter = 1;
+                        }
+                        @foreach (var patient in Model)
+                        {
+                            <tr data-enp="@patient.ENP" onclick="showPatientSidebar('@patient.ENP', this)">
+                                <td>@counter</td>
+                                <td><strong>@patient.ENP</strong></td>
+                                <td>@patient.DiagCode</td>
+                                <td>@(patient.DateDnIn?.ToString("dd.MM.yyyy") ?? "-")</td>
+                                <td>@(patient.DateDnOut?.ToString("dd.MM.yyyy") ?? "-")</td>
+                                <td>@patient.Mcod</td>
+                                <td>
+                                    @if (patient.DateDnOut == null)
+                                    {
+                                        <span class="badge-status success">✅ На ДН</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-status warning">📤 Снят</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="btn-sm-icon primary" onclick="event.stopPropagation(); showPatientSidebar('@patient.ENP', this.closest('tr'))">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </span>
+                                </td>
+                            </tr>
+                            counter++;
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Пагинация -->
+            <div class="pagination-bar">
+                <div class="page-size">
+                    <span>Показывать по:</span>
+                    <select id="pageSize">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+                <nav>
+                    <ul class="pagination" id="paginationControls">
+                        <!-- JavaScript добавит пагинацию -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <!-- ПРАВАЯ ЧАСТЬ: КАРТОЧКА ПАЦИЕНТА -->
+        <div class="patient-sidebar" id="patientSidebar">
+            <!-- Пустое состояние -->
+            <div class="empty-state" id="emptyState">
+                <i class="fas fa-user-circle"></i>
+                <h6>Выберите пациента</h6>
+                <p class="small text-muted">Кликните на строку в таблице<br>для просмотра карточки</p>
+            </div>
+
+            <!-- Данные пациента (скрыты по умолчанию) -->
+            <div id="patientContent" style="display: none;">
+                <div class="card-header-custom">
+                    <h6><i class="fas fa-id-card" style="color:#242424;"></i> Карточка</h6>
+                    <span class="enp-badge" id="sEnp">—</span>
+                </div>
+
+                <div class="detail-row"><span class="label">ЕНП</span><span class="value" id="sEnpValue">—</span></div>
+                <div class="detail-row"><span class="label">ID в ГИС ОМС</span><span class="value" id="sGisId">—</span></div>
+                <div class="detail-row"><span class="label">Диагноз</span><span class="value" id="sDiag">—</span></div>
+                <div class="detail-row"><span class="label">Дата установки</span><span class="value" id="sDiagDate">—</span></div>
+                <div class="detail-row"><span class="label">Код МО</span><span class="value" id="sMcod">—</span></div>
+                <div class="detail-row"><span class="label">Дата постановки</span><span class="value" id="sDnIn">—</span></div>
+                <div class="detail-row"><span class="label">Дата снятия</span><span class="value" id="sDnOut">—</span></div>
+                <div class="detail-row"><span class="label">Статус</span><span class="value" id="sStatus">—</span></div>
+                <div class="detail-row"><span class="label">Записей</span><span class="value" id="sRecordsCount">0</span></div>
+
+                <hr style="margin: 12px 0; border-color: var(--border-color);">
+
+                <div class="history-list">
+                    <div style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">
+                        <i class="fas fa-list"></i> История записей
+                    </div>
+                    <div id="sHistory">
+                        <div class="history-empty">Нет записей</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+
+            // ==========================================
+            // 1. ПОКАЗ КАРТОЧКИ ПАЦИЕНТА (AJAX)
+            // ==========================================
+            window.showPatientSidebar = function(enp, row) {
+                // Убираем активный класс со всех строк
+                $('#patientsTable tbody tr').removeClass('active');
+                if (row) {
+                    $(row).addClass('active');
+                }
+
+                // Показываем загрузку
+                $('#patientContent').hide();
+                $('#emptyState').hide();
+                $('#patientContent').html('<div class="text-center" style="padding:30px 0;"><i class="fas fa-spinner fa-spin" style="font-size:32px; color:#242424;"></i><p class="mt-2 text-muted small">Загрузка данных...</p></div>');
+                $('#patientContent').show();
+
+                // Запрос к серверу
+                $.get('@Url.Action("GetPatientDetails", "Patients")', { enp: enp }, function(response) {
+                    if (!response.success) {
+                        $('#patientContent').html('<div class="text-center text-danger" style="padding:20px;"><i class="fas fa-exclamation-circle"></i> ' + response.message + '</div>');
+                        return;
+                    }
+
+                    const data = response.data;
+                    const patient = data.patient;
+                    const records = data.records || [];
+
+                    // Заполняем карточку
+                    $('#sEnp').text(patient.enp || '—');
+                    $('#sEnpValue').html('<strong>' + (patient.enp || '—') + '</strong>');
+                    $('#sGisId').text(patient.dnPatientId || '—');
+                    $('#sDiag').html('<strong>' + (patient.diagCode || '—') + '</strong>' + (patient.diagCode ? ' — ' + (patient.diagName || '') : ''));
+                    $('#sDiagDate').text(patient.diagDate ? new Date(patient.diagDate).toLocaleDateString('ru-RU') : '—');
+                    $('#sMcod').text(patient.mcod || '—');
+                    $('#sDnIn').text(patient.dateDnIn ? new Date(patient.dateDnIn).toLocaleDateString('ru-RU') : '—');
+                    $('#sDnOut').text(patient.dateDnOut ? new Date(patient.dateDnOut).toLocaleDateString('ru-RU') : '—');
+
+                    const isActive = patient.dateDnOut === null || patient.dateDnOut === undefined;
+                    const statusClass = isActive ? 'success' : 'warning';
+                    const statusIcon = isActive ? '✅' : '📤';
+                    const statusText = isActive ? 'На ДН' : 'Снят';
+                    $('#sStatus').html('<span class="badge-status ' + statusClass + '">' + statusIcon + ' ' + statusText + '</span>');
+
+                    $('#sRecordsCount').text(records.length);
+
+                    // История записей
+                    let historyHtml = '';
+                    if (records.length === 0) {
+                        historyHtml = '<div class="history-empty">Нет записей</div>';
+                    } else {
+                        records.forEach(function(rec) {
+                            const typeClass = rec.fileType === 'GST' ? 'gst' : rec.fileType === 'GSM' ? 'gsm' : 'gpt';
+                            const periodText = rec.period || '—';
+                            historyHtml += `
+                                        <div class="history-item">
+                                            <span class="type"><span class="badge-type ${typeClass}">${rec.fileType}</span></span>
+                                            <span class="period">${periodText}</span>
+                                        </div>
+                                    `;
+                        });
+                    }
+                    $('#sHistory').html(historyHtml);
+
+                    // Показываем карточку
+                    $('#emptyState').hide();
+                    $('#patientContent').html(`
+                                <div class="card-header-custom">
+                                    <h6><i class="fas fa-id-card" style="color:#242424;"></i> Карточка</h6>
+                                    <span class="enp-badge" id="sEnp">${patient.enp || '—'}</span>
+                                </div>
+
+                                <div class="detail-row"><span class="label">ЕНП</span><span class="value" id="sEnpValue"><strong>${patient.enp || '—'}</strong></span></div>
+                                <div class="detail-row"><span class="label">ID в ГИС ОМС</span><span class="value" id="sGisId">${patient.dnPatientId || '—'}</span></div>
+                                <div class="detail-row"><span class="label">Диагноз</span><span class="value" id="sDiag"><strong>${patient.diagCode || '—'}</strong>${patient.diagCode ? ' — ' + (patient.diagName || '') : ''}</span></div>
+                                <div class="detail-row"><span class="label">Дата установки</span><span class="value" id="sDiagDate">${patient.diagDate ? new Date(patient.diagDate).toLocaleDateString('ru-RU') : '—'}</span></div>
+                                <div class="detail-row"><span class="label">Код МО</span><span class="value" id="sMcod">${patient.mcod || '—'}</span></div>
+                                <div class="detail-row"><span class="label">Дата постановки</span><span class="value" id="sDnIn">${patient.dateDnIn ? new Date(patient.dateDnIn).toLocaleDateString('ru-RU') : '—'}</span></div>
+                                <div class="detail-row"><span class="label">Дата снятия</span><span class="value" id="sDnOut">${patient.dateDnOut ? new Date(patient.dateDnOut).toLocaleDateString('ru-RU') : '—'}</span></div>
+                                <div class="detail-row"><span class="label">Статус</span><span class="value" id="sStatus"><span class="badge-status ${isActive ? 'success' : 'warning'}">${isActive ? '✅ На ДН' : '📤 Снят'}</span></span></div>
+                                <div class="detail-row"><span class="label">Записей</span><span class="value" id="sRecordsCount">${records.length}</span></div>
+
+                                <hr style="margin: 12px 0; border-color: var(--border-color);">
+
+                                <div class="history-list">
+                                    <div style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">
+                                        <i class="fas fa-list"></i> История записей
+                                    </div>
+                                    <div id="sHistory">
+                                        ${historyHtml}
+                                    </div>
+                                </div>
+                            `);
+
+                    // Прокрутка к карточке на мобильных
+                    if (window.innerWidth <= 1024) {
+                        $('#patientSidebar')[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }).fail(function() {
+                    $('#patientContent').html('<div class="text-center text-danger" style="padding:20px;"><i class="fas fa-exclamation-circle"></i> Ошибка загрузки данных</div>');
+                });
+            };
+
+            // ==========================================
+            // 2. ФИЛЬТРАЦИЯ
+            // ==========================================
+            function filterTable() {
+                const search = $('#searchInput').val().toLowerCase();
+                const period = $('#periodFilter').val();
+                const hospital = $('#hospitalFilter').val().toLowerCase();
+
+                let visibleCount = 0;
+                $('#patientsTable tbody tr').each(function() {
+                    const row = $(this);
+                    const enp = row.find('td:eq(1)').text().toLowerCase();
+                    const diag = row.find('td:eq(2)').text().toLowerCase();
+                    const mcod = row.find('td:eq(5)').text().toLowerCase();
+                    const periodText = row.find('td:eq(3)').text(); // упрощенно
+
+                    let show = true;
+                    if (search && !enp.includes(search) && !diag.includes(search)) show = false;
+                    if (hospital && !mcod.includes(hospital)) show = false;
+
+                    row.toggle(show);
+                    if (show) visibleCount++;
+                });
+
+                $('#recordCount').text(visibleCount);
+            }
+
+            $('#applyFilters').on('click', function() {
+                const search = $('#searchInput').val();
+                const period = $('#periodFilter').val();
+                const hospital = $('#hospitalFilter').val();
+
+                let url = '@Url.Action("Index")';
+                let params = [];
+                if (search) params.push(`search=${encodeURIComponent(search)}`);
+                if (period) params.push(`period=${encodeURIComponent(period)}`);
+                if (hospital) params.push(`hospitalCode=${encodeURIComponent(hospital)}`);
+                if (params.length > 0) url += '?' + params.join('&');
+                window.location.href = url;
+            });
+
+            $('#resetFilters').on('click', function() {
+                window.location.href = '@Url.Action("Index")';
+            });
+
+            $('.filter-group input').on('keypress', function(e) {
+                if (e.key === 'Enter') $('#applyFilters').click();
+            });
+
+            // ==========================================
+            // 3. ПАГИНАЦИЯ
+            // ==========================================
+            let currentPage = 1;
+            const rowsPerPage = 10;
+
+            function paginate() {
+                const rows = $('#patientsTable tbody tr:visible');
+                const totalRows = rows.length;
+                const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
+
+                rows.hide();
+                const start = (currentPage - 1) * rowsPerPage;
+                const end = Math.min(start + rowsPerPage, totalRows);
+                rows.slice(start, end).show();
+
+                let html = '';
+                if (currentPage > 1) {
+                    html += `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage - 1}">«</a></li>`;
+                }
+                for (let i = 1; i <= Math.min(totalPages, 7); i++) {
+                    html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                                <a class="page-link" href="#" data-page="${i}">${i}</a>
+                            </li>`;
+                }
+                if (totalPages > 7) {
+                    html += `<li class="page-item"><span class="page-link">…</span></li>`;
+                    html += `<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a></li>`;
+                }
+                if (currentPage < totalPages) {
+                    html += `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage + 1}">»</a></li>`;
+                }
+                $('#paginationControls').html(html);
+            }
+
+            $(document).on('click', '.page-link', function(e) {
+                e.preventDefault();
+                const page = $(this).data('page');
+                if (page) {
+                    currentPage = parseInt(page);
+                    paginate();
+                }
+            });
+
+            $('#pageSize').on('change', function() {
+                location.reload();
+            });
+
+            // ==========================================
+            // 4. ОБНОВЛЕНИЕ СЧЕТЧИКА В МЕНЮ
+            // ==========================================
+            function updateMenuCount() {
+                $.get('@Url.Action("GetCount", "Patients")', function(data) {
+                    const badge = $('#patientsCount');
+                    if (badge.length) {
+                        badge.text(data.count || 0);
+                    }
+                });
+            }
+
+            // ==========================================
+            // 5. ИНИЦИАЛИЗАЦИЯ
+            // ==========================================
+            setTimeout(paginate, 100);
+            updateMenuCount();
+
+        });
+    </script>
+}

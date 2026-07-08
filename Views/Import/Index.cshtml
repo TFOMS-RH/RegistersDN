@@ -1,0 +1,373 @@
+@{
+    ViewData["Title"] = "Импорт данных";
+
+    // Получаем список периодов (последние 12 месяцев)
+    var periods = new List<SelectListItem>();
+    for (int i = 0; i < 12; i++)
+    {
+        var date = DateTime.Now.AddMonths(-i);
+        var periodValue = date.ToString("yyyy-MM");
+        var periodText = date.ToString("MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("ru-RU"));
+        periods.Add(new SelectListItem { Value = periodValue, Text = periodText, Selected = (i == 0) });
+    }
+}
+
+<!-- Заголовок страницы -->
+<div class="page-header">
+    <div>
+        <h1>Импорт данных</h1>
+        <span class="subtitle">Загрузка файлов GST, GPT, GF, GSM, GPM</span>
+    </div>
+    <div class="page-actions">
+        <button class="btn-primary-custom" onclick="location.reload()">
+            <i class="fas fa-sync"></i> Обновить
+        </button>
+    </div>
+</div>
+
+<!-- Сообщения -->
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle"></i> @Html.Raw(TempData["Success"])
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle"></i> @Html.Raw(TempData["Error"])
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Info"] != null)
+{
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="fas fa-info-circle"></i> @Html.Raw(TempData["Info"])
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Warnings"] != null)
+{
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle"></i> <strong>Предупреждения:</strong><br />
+        @Html.Raw(TempData["Warnings"])
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- ========================================== -->
+<!-- КАРТОЧКА ЗАГРУЗКИ                         -->
+<!-- ========================================== -->
+<div class="table-wrapper" style="padding: 30px;">
+    <div class="text-center mb-4">
+        <div style="font-size: 48px; color: #242424;">
+            <i class="fas fa-cloud-upload-alt"></i>
+        </div>
+        <h4 class="mt-2">Загрузите файл для импорта</h4>
+        <p class="text-muted">Поддерживаются ZIP архивы (.zip) и XML файлы (.xml)</p>
+    </div>
+
+    <form asp-action="Upload" method="post" enctype="multipart/form-data" id="uploadForm">
+        @Html.AntiForgeryToken()
+
+        <div class="row g-3">
+            <!-- ЛЕВАЯ ЧАСТЬ: Drag & Drop -->
+            <div class="col-md-7">
+                <div class="upload-area" id="uploadArea" style="border: 2px dashed var(--border-color); border-radius: var(--radius); padding: 40px 20px; text-align: center; transition: all 0.3s;">
+                    <i class="fas fa-file-upload" style="font-size: 32px; color: var(--text-muted);"></i>
+                    <p class="mt-2 mb-1" id="fileLabel"><strong>Перетащите файл сюда</strong></p>
+                    <p class="text-muted small" id="fileNameDisplay">Файл не выбран</p>
+                    <input type="file" name="file" id="fileInput" style="display: none;" accept=".zip,.xml" required />
+                    
+                    <!-- КНОПКА ВЫБОРА ФАЙЛА -->
+                    <button type="button" class="btn-primary-custom mt-2" id="selectFileBtn">
+                        <i class="fas fa-folder-open"></i> Выбрать файл
+                    </button>
+                </div>
+            </div>
+
+            <!-- ПРАВАЯ ЧАСТЬ: Выбор периода и требования -->
+            <div class="col-md-5">
+                <div class="card" style="border: 1px solid var(--border-color); border-radius: var(--radius);">
+                    <div class="card-body">
+                        <!-- ВЫБОР ПЕРИОДА -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-calendar-alt" style="color: #242424;"></i> Выберите период
+                                <span class="text-danger">*</span>
+                            </label>
+                            <select name="period" class="form-select" id="periodSelect" required style="border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px;">
+                                <option value="">-- Выберите период --</option>
+                                @foreach (var period in periods)
+                                {
+                                    <option value="@period.Value" selected="@period.Selected">@period.Text</option>
+                                }
+                            </select>
+                            <div class="form-text text-danger" id="periodError" style="display: none;">
+                                <i class="fas fa-exclamation-circle"></i> Выберите период перед загрузкой
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <h6><i class="fas fa-info-circle" style="color: #242424;"></i> Требования</h6>
+                        <ul class="small text-muted ps-3">
+                            <li>Имя: <strong>[ТИП][номер/код]_[дата]_[номер]</strong></li>
+                            <li>ZIP и XML должны совпадать</li>
+                            <li>Максимальный размер: <strong>50 MB</strong></li>
+                        </ul>
+
+                        <!-- КНОПКА ЗАГРУЗКИ -->
+                        <div class="d-grid mt-3">
+                            <button type="submit" class="btn-primary-custom" id="uploadBtn" disabled style="width: 100%; opacity: 0.6; cursor: not-allowed;">
+                                <i class="fas fa-upload"></i> Загрузить
+                            </button>
+                            <div class="form-text text-center mt-1" id="uploadHint">
+                                <i class="fas fa-info-circle"></i> Выберите период и файл для активации загрузки
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- Примеры имен -->
+    <div class="mt-4">
+        <h6><i class="fas fa-tag text-muted"></i> Примеры корректных имен:</h6>
+        <div class="row g-2 mt-1">
+            <div class="col-auto">
+                <span class="badge-type gst">GST19_2605_1</span>
+            </div>
+            <div class="col-auto">
+                <span class="badge-type gpt">GPT01_1506_2</span>
+            </div>
+            <div class="col-auto">
+                <span class="badge-type gf">GF03_2007_3</span>
+            </div>
+            <div class="col-auto">
+                <span class="badge-type gsm">GSM190006_2605_1</span>
+            </div>
+            <div class="col-auto">
+                <span class="badge-type gpm">GPM190006_2605_1</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Карточки типов файлов -->
+<div class="stat-grid mt-4">
+    <div class="stat-card blue">
+        <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+        <div class="stat-label">GST</div>
+        <div class="stat-value" style="font-size: 14px; font-weight: 400; color: var(--text-muted);">Список состоящих на ДН</div>
+    </div>
+    <div class="stat-card green">
+        <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+        <div class="stat-label">GPT</div>
+        <div class="stat-value" style="font-size: 14px; font-weight: 400; color: var(--text-muted);">План-график мероприятий</div>
+    </div>
+    <div class="stat-card yellow">
+        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-label">GF</div>
+        <div class="stat-value" style="font-size: 14px; font-weight: 400; color: var(--text-muted);">Результаты верификации</div>
+    </div>
+    <div class="stat-card red">
+        <div class="stat-icon"><i class="fas fa-hospital"></i></div>
+        <div class="stat-label">GSM / GPM</div>
+        <div class="stat-value" style="font-size: 14px; font-weight: 400; color: var(--text-muted);">Данные от МО</div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // ==========================================
+            // 1. ЭЛЕМЕНТЫ
+            // ==========================================
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const selectFileBtn = document.getElementById('selectFileBtn');
+            const fileLabel = document.getElementById('fileLabel');
+            const fileNameDisplay = document.getElementById('fileNameDisplay');
+            const periodSelect = $('#periodSelect');
+            const uploadBtn = $('#uploadBtn');
+            const periodError = $('#periodError');
+            const uploadHint = $('#uploadHint');
+
+            let fileSelected = false;
+
+            // ==========================================
+            // 2. БЛОКИРОВКА КНОПКИ ЗАГРУЗКИ
+            // ==========================================
+            function checkUploadAvailability() {
+                const hasPeriod = periodSelect.val() !== '';
+                const hasFile = fileSelected;
+
+                if (hasPeriod && hasFile) {
+                    uploadBtn.prop('disabled', false);
+                    uploadBtn.css({
+                        'opacity': '1',
+                        'cursor': 'pointer'
+                    });
+                    periodError.hide();
+                    uploadHint.html('<i class="fas fa-check-circle text-success"></i> Период и файл выбраны, можно загружать');
+                } else {
+                    uploadBtn.prop('disabled', true);
+                    uploadBtn.css({
+                        'opacity': '0.6',
+                        'cursor': 'not-allowed'
+                    });
+                    
+                    if (!hasPeriod) {
+                        periodError.show();
+                        uploadHint.html('<i class="fas fa-info-circle"></i> Выберите период и файл для активации загрузки');
+                    } else if (!hasFile) {
+                        periodError.hide();
+                        uploadHint.html('<i class="fas fa-info-circle"></i> Выберите файл для активации загрузки');
+                    } else {
+                        periodError.hide();
+                        uploadHint.html('<i class="fas fa-info-circle"></i> Выберите период и файл для активации загрузки');
+                    }
+                }
+            }
+
+            checkUploadAvailability();
+            periodSelect.on('change', checkUploadAvailability);
+
+            // ==========================================
+            // 3. ВЫБОР ФАЙЛА ПО КНОПКЕ
+            // ==========================================
+            selectFileBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                
+                if (!periodSelect.val()) {
+                    alert('⚠️ Сначала выберите период!');
+                    periodSelect.focus();
+                    periodSelect.css('border-color', 'var(--danger-red)');
+                    setTimeout(() => {
+                        periodSelect.css('border-color', 'var(--border-color)');
+                    }, 3000);
+                    return;
+                }
+                
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', function(e) {
+                e.stopPropagation();
+                if (this.files.length > 0) {
+                    fileSelected = true;
+                    updateFileInfo(this.files[0]);
+                    checkUploadAvailability();
+                }
+            });
+
+            // ==========================================
+            // 4. DRAG & DROP
+            // ==========================================
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.style.borderColor = 'var(--accent-blue)';
+                this.style.background = '#ebf5ff';
+            });
+
+            uploadArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.style.borderColor = 'var(--border-color)';
+                this.style.background = 'transparent';
+            });
+
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.style.borderColor = 'var(--border-color)';
+                this.style.background = 'transparent';
+
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    if (!periodSelect.val()) {
+                        alert('⚠️ Сначала выберите период!');
+                        periodSelect.focus();
+                        periodSelect.css('border-color', 'var(--danger-red)');
+                        setTimeout(() => {
+                            periodSelect.css('border-color', 'var(--border-color)');
+                        }, 3000);
+                        return;
+                    }
+                    
+                    fileInput.files = files;
+                    fileSelected = true;
+                    updateFileInfo(files[0]);
+                    checkUploadAvailability();
+                }
+            });
+
+            // ==========================================
+            // 5. ОБНОВЛЕНИЕ ИНФОРМАЦИИ О ФАЙЛЕ
+            // ==========================================
+            function updateFileInfo(file) {
+                const ext = file.name.split('.').pop().toLowerCase();
+                const icon = ext === 'zip' ? 'fa-file-archive' : 'fa-file-code';
+                const color = ext === 'zip' ? 'var(--warning-yellow)' : 'var(--accent-blue)';
+
+                fileLabel.innerHTML = `<i class="fas ${icon}" style="color: ${color};"></i> <strong>${file.name}</strong>`;
+                fileNameDisplay.textContent = `Размер: ${(file.size / 1024).toFixed(1)} KB | Тип: ${ext.toUpperCase()}`;
+                fileNameDisplay.style.color = 'var(--text-primary)';
+            }
+
+            // ==========================================
+            // 6. ПРОВЕРКА ПРИ ОТПРАВКЕ
+            // ==========================================
+            $('#uploadForm').on('submit', function(e) {
+                const period = periodSelect.val();
+                if (!period) {
+                    e.preventDefault();
+                    periodSelect.focus();
+                    periodSelect.css('border-color', 'var(--danger-red)');
+                    alert('⚠️ Пожалуйста, выберите период перед загрузкой файла!');
+                    setTimeout(() => {
+                        periodSelect.css('border-color', 'var(--border-color)');
+                    }, 3000);
+                    return;
+                }
+
+                if (!fileSelected) {
+                    e.preventDefault();
+                    alert('⚠️ Пожалуйста, выберите файл для загрузки!');
+                    return;
+                }
+            });
+
+            // ==========================================
+            // 7. ПОДСКАЗКА ПРИ КЛИКЕ НА КАРТОЧКИ
+            // ==========================================
+            $('.stat-card').on('click', function() {
+                const label = $(this).find('.stat-label').text();
+                alert(`Тип файла: ${label}\nФормат: ${label}[номер/код]_[дата]_[номер].xml`);
+            });
+
+            // ==========================================
+            // 8. СБРОС ОШИБКИ ПРИ ФОКУСЕ
+            // ==========================================
+            periodSelect.on('focus', function() {
+                $(this).css('border-color', 'var(--accent-blue)');
+            });
+
+            periodSelect.on('blur', function() {
+                if (!$(this).val()) {
+                    $(this).css('border-color', 'var(--danger-red)');
+                } else {
+                    $(this).css('border-color', 'var(--border-color)');
+                }
+            });
+
+        });
+    </script>
+}

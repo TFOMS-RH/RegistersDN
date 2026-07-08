@@ -1,0 +1,137 @@
+@model RegistrDN.Models.ViewModels.AdminRegisterViewModel
+
+@{
+    ViewData["Title"] = "Добавление пользователя";
+    var roles = ViewBag.Roles as List<Microsoft.AspNetCore.Identity.IdentityRole> ?? new List<Microsoft.AspNetCore.Identity.IdentityRole>();
+    // Убираем Layout = null — будет использоваться общий Layout
+}
+
+<div class="page-header">
+    <div>
+        <h1>Добавление пользователя</h1>
+        <span class="subtitle">Создание новой учетной записи</span>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Users" class="btn-outline-custom">
+            <i class="fas fa-arrow-left"></i> Назад
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="table-wrapper" style="padding: 30px;">
+            <form asp-action="Register" method="post">
+                @Html.AntiForgeryToken()
+
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                @if (TempData["Success"] != null)
+                {
+                    <div class="alert alert-success" role="alert">
+                        <i class="fas fa-check-circle"></i> @TempData["Success"]
+                    </div>
+                }
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Email" class="form-label">Email</label>
+                            <input asp-for="Email" class="form-control" placeholder="user@example.com" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="FullName" class="form-label">ФИО</label>
+                            <input asp-for="FullName" class="form-control" placeholder="Иванов Иван Иванович" />
+                            <span asp-validation-for="FullName" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Password" class="form-label">Пароль</label>
+                            <input asp-for="Password" class="form-control" placeholder="••••••••" type="password" />
+                            <span class="form-text text-muted">Минимум 6 символов</span>
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="ConfirmPassword" class="form-label">Подтверждение пароля</label>
+                            <input asp-for="ConfirmPassword" class="form-control" placeholder="••••••••" type="password" />
+                            <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label asp-for="HospitalCode" class="form-label">Код МО</label>
+                            <input asp-for="HospitalCode" class="form-control" placeholder="190006" />
+                            <span class="form-text text-muted">Для МО обязательно</span>
+                            <span asp-validation-for="HospitalCode" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label asp-for="RegionCode" class="form-label">Код региона</label>
+                            <input asp-for="RegionCode" class="form-control" placeholder="77" />
+                            <span asp-validation-for="RegionCode" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label asp-for="Role" class="form-label">Роль</label>
+                            <select asp-for="Role" class="form-select">
+                                <option value="">Выберите роль</option>
+                                @foreach (var role in roles)
+                                {
+                                    <option value="@role.Name">@role.Name</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Role" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3 p-3" style="background: #f7fafc; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <strong>Что дают роли:</strong>
+                    <ul class="mb-0 mt-1 text-muted">
+                        <li><strong>Admin</strong> — полный доступ ко всем разделам</li>
+                        <li><strong>TFOMS</strong> — доступ ко всем данным, управление пользователями</li>
+                        <li><strong>MO</strong> — доступ только к своим файлам</li>
+                    </ul>
+                </div>
+
+                <hr />
+
+                <button type="submit" class="btn-primary-custom" style="width:100%; padding: 10px;">
+                    <i class="fas fa-user-plus"></i> Создать пользователя
+                </button>
+            </form>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="table-wrapper" style="padding: 24px;">
+            <h6><i class="fas fa-info-circle" style="color:#242424;"></i> Информация</h6>
+            <hr />
+            <ul class="small text-muted ps-3">
+                <li>Пароль должен содержать минимум 6 символов</li>
+                <li>Роль определяет доступ к разделам</li>
+                <li>МО — видят только свои файлы</li>
+                <li>TFOMS — видят все файлы</li>
+                <li>Admin — полный доступ</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Автоматическое скрытие уведомлений
+            setTimeout(function() {
+                $('.alert').fadeOut('slow');
+            }, 5000);
+        });
+    </script>
+}

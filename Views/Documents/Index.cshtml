@@ -1,0 +1,448 @@
+@model IEnumerable<RegistrDN.Models.Entities.DnDocumentEntity>
+
+@{
+    ViewData["Title"] = "Журнал документов";
+}
+
+<!-- Заголовок страницы -->
+<div class="page-header">
+    <div>
+        <h1>📋 Журнал документов</h1>
+        <span class="subtitle">Управление загруженными файлами</span>
+    </div>
+    <div class="page-actions">
+        <a asp-controller="Import" asp-action="Index" class="btn-outline-custom">
+            <i class="fas fa-upload"></i> Импорт
+        </a>
+        <a href="#" class="btn-primary-custom" onclick="location.reload()">
+            <i class="fas fa-sync"></i> Обновить
+        </a>
+    </div>
+</div>
+
+<!-- Сообщения -->
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle"></i> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Статистика -->
+<div class="stat-grid">
+    <div class="stat-card blue">
+        <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+        <div class="stat-label">Всего документов</div>
+        <div class="stat-value" id="totalCount">@Model.Count()</div>
+    </div>
+    <div class="stat-card green">
+        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-label">Успешно загружено</div>
+        <div class="stat-value">@Model.Count(x => x.IsValid)</div>
+    </div>
+    <div class="stat-card yellow">
+        <div class="stat-icon"><i class="fas fa-clock"></i></div>
+        <div class="stat-label">GST / GSM</div>
+        <div class="stat-value">@Model.Count(x => x.FileType == "GST" || x.FileType == "GSM")</div>
+    </div>
+    <div class="stat-card red">
+        <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+        <div class="stat-label">GPT / GPM</div>
+        <div class="stat-value">@Model.Count(x => x.FileType == "GPT" || x.FileType == "GPM")</div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- ФИЛЬТРЫ (ОБНОВЛЕННЫЕ)                     -->
+<!-- ========================================== -->
+<div class="filter-bar">
+    <div class="filter-row">
+        <!-- Поиск -->
+        <div class="filter-group">
+            <label>Поиск</label>
+            <input type="text" placeholder="Имя файла, код МО..." id="searchInput">
+        </div>
+
+        <!-- Тип файла -->
+        <div class="filter-group">
+            <label>Тип файла</label>
+            <select id="typeFilter">
+                <option value="">Все типы</option>
+                <option value="GST">GST</option>
+                <option value="GPT">GPT</option>
+                <option value="GF">GF</option>
+                <option value="GSM">GSM</option>
+                <option value="GPM">GPM</option>
+            </select>
+        </div>
+
+        <!-- Код МО -->
+        <div class="filter-group">
+            <label>Код МО</label>
+            <input type="text" placeholder="Например: 190006" id="hospitalFilter">
+        </div>
+
+        <!-- ========================================== -->
+        <!-- НОВЫЙ ФИЛЬТР: ПЕРИОД                       -->
+        <!-- ========================================== -->
+        <div class="filter-group">
+            <label>Период</label>
+            <select id="periodFilter">
+                <option value="">Все периоды</option>
+                <!-- JavaScript заполнит этот список -->
+            </select>
+        </div>
+
+        <!-- Статус -->
+        <div class="filter-group">
+            <label>Статус</label>
+            <select id="statusFilter">
+                <option value="">Все статусы</option>
+                <option value="success">Успешно</option>
+                <option value="error">Ошибка</option>
+            </select>
+        </div>
+
+        <!-- Кнопки -->
+        <div class="filter-actions">
+            <button class="btn-primary-custom" id="applyFilters">
+                <i class="fas fa-search"></i> Найти
+            </button>
+            <button class="btn-outline-custom" id="resetFilters">
+                <i class="fas fa-undo"></i> Сбросить
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Таблица -->
+<div class="table-wrapper">
+    <div class="table-toolbar">
+        <span class="count">Найдено записей: <strong id="recordCount">@Model.Count()</strong></span>
+        <div>
+            <button class="btn-outline-custom" style="padding:4px 12px;font-size:12px;" onclick="exportTable()">
+                <i class="fas fa-file-excel"></i> Экспорт в Excel
+            </button>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table" id="documentsTable">
+            <thead>
+                <tr>
+                    <th style="width:40px;">#</th>
+                    <th>Дата загрузки</th>
+                    <th>Имя файла</th>
+                    <th>Тип</th>
+                    <th>Код МО</th>
+                    <th style="text-align:center;">Период</th>    <!-- НОВАЯ КОЛОНКА -->
+                    <th style="text-align:center;">Записей</th>
+                    <th style="text-align:center;">Статус</th>
+                    <th style="text-align:center;width:140px;">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    int counter = 1;
+                }
+                @foreach (var doc in Model)
+                {
+                    <tr>
+                        <td>@counter</td>
+                        <td>@doc.UploadDate.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>@doc.FileName</td>
+                        <td>
+                            <span class="badge-type @(doc.FileType == "GST" ? "gst" : 
+                                doc.FileType == "GPT" ? "gpt" : 
+                                doc.FileType == "GF" ? "gf" :
+                                doc.FileType == "GSM" ? "gsm" : "gpm")">
+                                @doc.FileType
+                            </span>
+                        </td>
+                        <td>@(!string.IsNullOrEmpty(doc.HospitalCode) ? doc.HospitalCode : "-")</td>
+                        <td style="text-align:center;">
+                            @(!string.IsNullOrEmpty(doc.Period) ? doc.Period : "-")
+                        </td>   <!-- НОВАЯ ЯЧЕЙКА -->
+                        <td style="text-align:center;">@doc.RecordsCount</td>
+                        <td style="text-align:center;">
+                            @if (doc.IsValid)
+                            {
+                                <span class="badge-status success">✅ Успешно</span>
+                            }
+                            else
+                            {
+                                <span class="badge-status error">❌ Ошибка</span>
+                            }
+                        </td>
+                        <td style="text-align:center;">
+                            <a href="@Url.Action("Details", "Documents", new { id = doc.Id })" 
+                               class="btn-sm-icon primary" title="Просмотр">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="@Url.Action("Export" + doc.FileType, "Export", new { documentId = doc.Id })" 
+                               class="btn-sm-icon primary" title="Скачать ZIP">
+                                <i class="fas fa-download"></i>
+                            </a>
+                            <button class="btn-sm-icon danger" title="Удалить" onclick="deleteDocument(@doc.Id)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    counter++;
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Пагинация -->
+    <div class="pagination-bar">
+        <div class="page-size">
+            <span>Показывать по:</span>
+            <select id="pageSize">
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50" selected>50</option>
+                <option value="100">100</option>
+            </select>
+        </div>
+        <nav>
+            <ul class="pagination" id="paginationControls">
+                <!-- JavaScript добавит пагинацию -->
+            </ul>
+        </nav>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+
+            // ==========================================
+            // 1. ЗАПОЛНЕНИЕ ФИЛЬТРА ПЕРИОДОВ
+            // ==========================================
+            function populatePeriodFilter() {
+                const periods = new Set();
+                $('#documentsTable tbody tr').each(function() {
+                    // Берем данные из колонки "Период" (индекс 5)
+                    const period = $(this).find('td:eq(5)').text().trim();
+                    if (period && period !== '-') {
+                        periods.add(period);
+                    }
+                });
+
+                const select = $('#periodFilter');
+                select.empty();
+                select.append('<option value="">Все периоды</option>');
+
+                // Сортируем по убыванию (последние сверху)
+                const sortedPeriods = Array.from(periods).sort().reverse();
+                sortedPeriods.forEach(p => {
+                    // Форматируем для отображения (2026-04 → Апрель 2026)
+                    const parts = p.split('-');
+                    let displayText = p;
+                    if (parts.length === 2) {
+                        const monthNames = {
+                            '01': 'Январь', '02': 'Февраль', '03': 'Март',
+                            '04': 'Апрель', '05': 'Май', '06': 'Июнь',
+                            '07': 'Июль', '08': 'Август', '09': 'Сентябрь',
+                            '10': 'Октябрь', '11': 'Ноябрь', '12': 'Декабрь'
+                        };
+                        displayText = `${monthNames[parts[1]] || parts[1]} ${parts[0]}`;
+                    }
+                    select.append(`<option value="${p}">${displayText}</option>`);
+                });
+            }
+
+            // ==========================================
+            // 2. ФИЛЬТРАЦИЯ ТАБЛИЦЫ (С ПЕРИОДОМ)
+            // ==========================================
+            function filterTable() {
+                const search = $('#searchInput').val().toLowerCase();
+                const type = $('#typeFilter').val();
+                const hospital = $('#hospitalFilter').val().toLowerCase();
+                const period = $('#periodFilter').val();
+                const status = $('#statusFilter').val();
+
+                let visibleCount = 0;
+                $('#documentsTable tbody tr').each(function() {
+                    const row = $(this);
+                    const name = row.find('td:eq(2)').text().toLowerCase();
+                    const fileType = row.find('td:eq(3)').text().trim();
+                    const hospitalCode = row.find('td:eq(4)').text().toLowerCase();
+                    const periodText = row.find('td:eq(5)').text().trim();
+                    const statusText = row.find('td:eq(7)').text().trim();
+
+                    let show = true;
+
+                    // Поиск
+                    if (search && !name.includes(search) && !hospitalCode.includes(search)) {
+                        show = false;
+                    }
+
+                    // Тип файла
+                    if (type && fileType !== type) {
+                        show = false;
+                    }
+
+                    // Код МО
+                    if (hospital && !hospitalCode.includes(hospital)) {
+                        show = false;
+                    }
+
+                    // ПЕРИОД (НОВЫЙ ФИЛЬТР)
+                    if (period && periodText !== period) {
+                        show = false;
+                    }
+
+                    // Статус
+                    if (status) {
+                        const isSuccess = statusText.includes('Успешно');
+                        if (status === 'success' && !isSuccess) show = false;
+                        if (status === 'error' && isSuccess) show = false;
+                    }
+
+                    row.toggle(show);
+                    if (show) visibleCount++;
+                });
+
+                $('#recordCount').text(visibleCount);
+                paginate();
+            }
+
+            // ==========================================
+            // 3. ПАГИНАЦИЯ
+            // ==========================================
+            let currentPage = 1;
+            const rowsPerPage = 50;
+
+            function paginate() {
+                const rows = $('#documentsTable tbody tr:visible');
+                const totalRows = rows.length;
+                const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
+
+                rows.hide();
+                const start = (currentPage - 1) * rowsPerPage;
+                const end = Math.min(start + rowsPerPage, totalRows);
+                rows.slice(start, end).show();
+
+                let html = '';
+                if (currentPage > 1) {
+                    html += `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage - 1}">«</a></li>`;
+                }
+                for (let i = 1; i <= Math.min(totalPages, 7); i++) {
+                    html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                                <a class="page-link" href="#" data-page="${i}">${i}</a>
+                            </li>`;
+                }
+                if (totalPages > 7) {
+                    html += `<li class="page-item"><span class="page-link">…</span></li>`;
+                    html += `<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a></li>`;
+                }
+                if (currentPage < totalPages) {
+                    html += `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage + 1}">»</a></li>`;
+                }
+                $('#paginationControls').html(html);
+            }
+
+            // ==========================================
+            // 4. СОБЫТИЯ
+            // ==========================================
+
+            // Применение фильтров
+            $('#applyFilters').on('click', filterTable);
+
+            // Сброс фильтров (включая период)
+            $('#resetFilters').on('click', function() {
+                $('#searchInput').val('');
+                $('#typeFilter').val('');
+                $('#hospitalFilter').val('');
+                $('#periodFilter').val('');
+                $('#statusFilter').val('');
+                filterTable();
+            });
+
+            // Поиск по Enter
+            $('.filter-group input').on('keypress', function(e) {
+                if (e.key === 'Enter') filterTable();
+            });
+
+            // Пагинация
+            $(document).on('click', '.page-link', function(e) {
+                e.preventDefault();
+                const page = $(this).data('page');
+                if (page) {
+                    currentPage = parseInt(page);
+                    paginate();
+                }
+            });
+
+            // Изменение количества записей
+            $('#pageSize').on('change', function() {
+                location.reload();
+            });
+
+            // ==========================================
+            // 5. УДАЛЕНИЕ ДОКУМЕНТА
+            // ==========================================
+            window.deleteDocument = function(id) {
+                if (confirm('Удалить документ #' + id + '?')) {
+                    $.ajax({
+                        url: '@Url.Action("Delete", "Documents")',
+                        type: 'POST',
+                        data: { id: id },
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                location.reload();
+                            } else {
+                                alert(response.message || 'Ошибка при удалении');
+                            }
+                        },
+                        error: function() {
+                            alert('Ошибка при удалении');
+                        }
+                    });
+                }
+            };
+
+            // ==========================================
+            // 6. ЭКСПОРТ В EXCEL (демо)
+            // ==========================================
+            window.exportTable = function() {
+                alert('Функция экспорта в Excel будет добавлена позже');
+            };
+
+            // ==========================================
+            // 7. ИНИЦИАЛИЗАЦИЯ
+            // ==========================================
+
+            // Заполняем фильтр периодов
+            populatePeriodFilter();
+
+            // Запускаем пагинацию
+            setTimeout(paginate, 100);
+
+            // Обновление счетчика в меню
+            function updateMenuCount() {
+                const total = $('#documentsTable tbody tr').length;
+                const badge = $('#docCount');
+                if (badge.length) {
+                    badge.text(total);
+                }
+            }
+            updateMenuCount();
+
+        });
+    </script>
+}

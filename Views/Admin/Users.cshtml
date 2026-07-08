@@ -1,0 +1,108 @@
+@model IEnumerable<RegistrDN.Models.ViewModels.UserViewModel>
+
+@{
+    ViewData["Title"] = "Пользователи";
+    // Убираем Layout = null — будет использоваться общий Layout
+}
+
+<div class="page-header">
+    <div>
+        <h1>Пользователи</h1>
+        <span class="subtitle">Управление учетными записями</span>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Register" class="btn-primary-custom">
+            <i class="fas fa-user-plus"></i> Добавить пользователя
+        </a>
+        <a href="#" class="btn-outline-custom" onclick="location.reload()">
+            <i class="fas fa-sync"></i> Обновить
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle"></i> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="table-wrapper">
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>ФИО</th>
+                    <th>Код МО</th>
+                    <th>Роли</th>
+                    <th>Статус</th>
+                    <th>Дата регистрации</th>
+                    <th style="width:120px;">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Model)
+                {
+                    <tr>
+                        <td>@user.Email</td>
+                        <td>@user.FullName</td>
+                        <td>@(!string.IsNullOrEmpty(user.HospitalCode) ? user.HospitalCode : "-")</td>
+                        <td>
+                            @foreach (var role in user.Roles.Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries))
+                            {
+                                <span class="badge-status" style="background:#e2e8f0; color:#1a202c; margin-right:2px; font-size:11px; padding:2px 10px;">@role</span>
+                            }
+                        </td>
+                        <td>
+                            @if (user.IsActive)
+                            {
+                                <span class="badge-status success">Активен</span>
+                            }
+                            else
+                            {
+                                <span class="badge-status error">Заблокирован</span>
+                            }
+                        </td>
+                        <td>@user.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>
+                            <form asp-action="ToggleUserStatus" method="post" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@user.Id" />
+                                <button type="submit" class="btn-sm-icon primary" title="@(user.IsActive ? "Заблокировать" : "Разблокировать")">
+                                    <i class="fas @(user.IsActive ? "fa-lock" : "fa-unlock")"></i>
+                                </button>
+                            </form>
+                            <form asp-action="DeleteUser" method="post" style="display:inline;" onsubmit="return confirm('Удалить пользователя @user.Email?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@user.Id" />
+                                <button type="submit" class="btn-sm-icon danger" title="Удалить">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            setTimeout(function() {
+                $('.alert').fadeOut('slow');
+            }, 5000);
+        });
+    </script>
+}
