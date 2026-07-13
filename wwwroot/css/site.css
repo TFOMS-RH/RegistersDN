@@ -263,15 +263,15 @@ body {
    ============================================ */
 .stat-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
 }
 
 .stat-card {
     background: var(--card-bg);
     border-radius: var(--radius);
-    padding: 16px 20px;
+    padding: 12px 16px;
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-color);
     transition: box-shadow 0.2s;
@@ -282,13 +282,15 @@ body {
 }
 
 .stat-card .stat-label {
-    font-size: 13px;
+    font-size: 11px;
     color: var(--text-muted);
     font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
 .stat-card .stat-value {
-    font-size: 26px;
+    font-size: 20px;
     font-weight: 700;
     color: var(--text-primary);
     margin-top: 2px;
@@ -296,15 +298,14 @@ body {
 
 .stat-card .stat-icon {
     float: right;
-    font-size: 28px;
-    opacity: 0.15;
-    color: var(--text-primary);
+    font-size: 32px;
+    opacity: 0.6;
 }
 
-.stat-card.blue .stat-icon { color: #242424; }
-.stat-card.green .stat-icon { color: var(--success-green); }
-.stat-card.yellow .stat-icon { color: var(--warning-yellow); }
-.stat-card.red .stat-icon { color: var(--danger-red); }
+.stat-card.blue .stat-icon i { color: #3182ce; }
+.stat-card.green .stat-icon i { color: #38a169; }
+.stat-card.yellow .stat-icon i { color: #d69e2e; }
+.stat-card.red .stat-icon i { color: #e53e3e; }
 
 /* ============================================
    БЛОК АГРЕГАЦИИ
@@ -746,7 +747,7 @@ body {
         gap: 10px;
     }
     .stat-card .stat-value {
-        font-size: 20px;
+        font-size: 18px;
     }
 
     .filter-row {
@@ -952,53 +953,3 @@ body {
         max-height: none;
     }
 }
-
-/* ============================================
-   КАРТОЧКИ СТАТИСТИКИ (УМЕНЬШЕННЫЕ)
-   ============================================ */
-.stat-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 12px;
-    margin-bottom: 20px;
-}
-
-.stat-card {
-    background: var(--card-bg);
-    border-radius: var(--radius);
-    padding: 12px 16px;
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-color);
-    transition: box-shadow 0.2s;
-}
-
-.stat-card:hover {
-    box-shadow: var(--shadow-md);
-}
-
-.stat-card .stat-label {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-
-.stat-card .stat-value {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-top: 2px;
-}
-
-.stat-card .stat-icon {
-    float: right;
-    font-size: 22px;
-    opacity: 0.15;
-    color: var(--text-primary);
-}
-
-.stat-card.blue .stat-icon { color: #242424; }
-.stat-card.green .stat-icon { color: #38a169; }
-.stat-card.yellow .stat-icon { color: #d69e2e; }
-.stat-card.red .stat-icon { color: #e53e3e; }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RegistrDN.Data;
 using RegistrDN.Services.Interfaces;
@@ -8,10 +9,10 @@ using System.IO.Compression;
 using System.Text;
 using RegistrDN.Services.Xml;
 using AutoMapper;
-using Microsoft.AspNetCore.Authorization;
 
 namespace RegistrDN.Controllers;
 
+[Authorize]
 public class ExportController : Controller
 {
     private readonly IUnitOfWork _unitOfWork;
@@ -31,151 +32,85 @@ public class ExportController : Controller
         _logger = logger;
     }
 
+    // ==========================================
+    // ГЛАВНАЯ СТРАНИЦА ЭКСПОРТА
+    // ==========================================
     public async Task<IActionResult> Index()
     {
         var documents = await _unitOfWork.Documents
             .FindAsync(x => x.FileType == "GST" || x.FileType == "GPT" || x.FileType == "GF" 
                          || x.FileType == "GSM" || x.FileType == "GPM");
 
-        ViewBag.Months = GetMonths();
-        ViewBag.Years = GetYears();
+        var periods = documents
+            .Where(x => !string.IsNullOrEmpty(x.Period))
+            .Select(x => x.Period)
+            .Distinct()
+            .OrderByDescending(p => p)
+            .ToList();
+
+        ViewBag.Periods = periods;
         
         return View(documents);
     }
 
+    // ==========================================
+    // АГРЕГАЦИЯ GSM → GST
+    // ==========================================
     [HttpGet]
-    public async Task<IActionResult> GetCount()
-    {
-        var count = await _unitOfWork.Documents.CountAsync();
-        return Json(new { count });
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> ExportAggregatedGst(string? period)
     {
         try
         {
-            var document = await _unitOfWork.Documents.GetByIdAsync(id);
-            if (document == null)
-            {
-                return Json(new { success = false, message = "Документ не найден" });
-            }
-
-            if (document.FileType == "GST" || document.FileType == "GSM")
-            {
-                var gstRecords = await _unitOfWork.GstRecords
-                    .FindAsync(x => x.DocumentId == id);
-                if (gstRecords.Any())
-                {
-                    await _unitOfWork.GstRecords.DeleteRangeAsync(gstRecords);
-                }
-            }
-            else if (document.FileType == "GPT" || document.FileType == "GPM")
-            {
-                var gptRecords = await _unitOfWork.GptRecords
-                    .FindAsync(x => x.DocumentId == id);
-                if (gptRecords.Any())
-                {
-                    await _unitOfWork.GptRecords.DeleteRangeAsync(gptRecords);
-                }
-            }
-            else if (document.FileType == "GF")
-            {
-                var gfRecords = await _unitOfWork.GfRecords
-                    .FindAsync(x => x.DocumentId == id);
-                if (gfRecords.Any())
-                {
-                    await _unitOfWork.GfRecords.DeleteRangeAsync(gfRecords);
-                }
-            }
-
-            await _unitOfWork.Documents.DeleteAsync(document);
-            await _unitOfWork.SaveChangesAsync();
-
-            return Json(new { success = true, message = "Документ успешно удален" });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Ошибка удаления документа");
-            return Json(new { success = false, message = ex.Message });
-        }
-    }
-
-    public async Task<IActionResult> Details(int id)
-    {
-        var document = await _unitOfWork.Documents.GetByIdAsync(id);
-        if (document == null)
-            return NotFound();
-
-        ViewBag.Document = document;
-
-        switch (document.FileType)
-        {
-            case "GST":
-            case "GSM":
-                var gstRecords = await _unitOfWork.GstRecords
-                    .FindAsync(x => x.DocumentId == id);
-                return View("DetailsGst", gstRecords);
-                
-            case "GPT":
-            case "GPM":
-                var gptRecords = await _unitOfWork.GptRecords
-                    .FindAsync(x => x.DocumentId == id);
-                return View("DetailsGpt", gptRecords);
-                
-            case "GF":
-                var gfRecords = await _unitOfWork.GfRecords
-                    .FindAsync(x => x.DocumentId == id);
-                return View("DetailsGf", gfRecords);
-                
-            default:
-                return NotFound();
-        }
-    }
-
-
-    [HttpGet]
-    public async Task<IActionResult> ExportAggregatedGst(int? year, int? month)
-    {
-        try
-        {
-            var gstRecords = await _unitOfWork.GstRecords
-                .FindAsync(x => true);
-
-            if (!gstRecords.Any())
-            {
-                TempData["Error"] = "Нет данных для агрегации GSM → GST";
-                return RedirectToAction(nameof(Index));
-            }
-
+            // 1. Получаем документы GSM с фильтром по периоду
             var gsmDocuments = await _unitOfWork.Documents
                 .FindAsync(x => x.FileType == "GSM");
 
+            if (!string.IsNullOrEmpty(period))
+            {
+                gsmDocuments = gsmDocuments.Where(x => x.Period == period).ToList();
+            }
+
             if (!gsmDocuments.Any())
             {
-                TempData["Error"] = "Нет документов GSM для агрегации";
+                TempData["Error"] = $"Нет документов GSM для агрегации {(string.IsNullOrEmpty(period) ? "" : $"за период {period}")}";
                 return RedirectToAction(nameof(Index));
             }
 
+            // 2. Получаем все GST записи из этих документов
+            var docIds = gsmDocuments.Select(x => x.Id).ToList();
+            var gstRecords = await _unitOfWork.GstRecords
+                .FindAsync(x => docIds.Contains(x.DocumentId));
+
+            if (!gstRecords.Any())
+            {
+                TempData["Error"] = "Нет записей GST для агрегации";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // 3. Формируем заголовок
             var firstDoc = gsmDocuments.First();
+            var regionCode = firstDoc.RegionCode ?? "77";
+            
             var header = new GstExportHeader
             {
-                FileName = $"GST_AGGREGATED_{DateTime.Now:yyyyMMdd_HHmmss}",
-                RegionCode = firstDoc.RegionCode ?? "77",
+                FileName = BuildAggregatedFileName("GST", regionCode, period),
+                RegionCode = regionCode,
                 RecordsCount = gstRecords.Count(),
                 FileNumber = 1,
                 Data = DateTime.Now.ToString("yyyy-MM-dd")
             };
 
+            // 4. Маппим записи в Export DTO
             var exportRecords = _mapper.Map<List<GstExportRecord>>(gstRecords);
 
+            // 5. Формируем итоговый DTO
             var exportDto = new GstExportDto
             {
                 Header = header,
                 Records = exportRecords
             };
 
+            // 6. Получаем сервис для сериализации
             var service = _serviceProvider.GetService<IXmlService<GstImportDto, GstExportDto, GstEntity>>();
             if (service == null)
             {
@@ -183,12 +118,15 @@ public class ExportController : Controller
                 return RedirectToAction(nameof(Index));
             }
 
+            // 7. Сериализуем в XML
             var xmlContent = await service.SerializeToXmlAsync(exportDto);
 
-            var fileName = BuildFileNameAggregated("GST", year, month);
+            // 8. Формируем имя файла для скачивания
+            var fileName = BuildAggregatedFileName("GST", regionCode, period);
             var zipFileName = $"{fileName}.zip";
             var xmlFileName = $"{fileName}.xml";
 
+            // 9. Создаем ZIP архив
             using var memoryStream = new MemoryStream();
             using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
             {
@@ -209,46 +147,63 @@ public class ExportController : Controller
         }
     }
 
+    // ==========================================
+    // АГРЕГАЦИЯ GPM → GPT
+    // ==========================================
     [HttpGet]
-    public async Task<IActionResult> ExportAggregatedGpt(int? year, int? month)
+    public async Task<IActionResult> ExportAggregatedGpt(string? period)
     {
         try
         {
-            var gptRecords = await _unitOfWork.GptRecords
-                .FindAsync(x => true);
-
-            if (!gptRecords.Any())
-            {
-                TempData["Error"] = "Нет данных для агрегации GPM → GPT";
-                return RedirectToAction(nameof(Index));
-            }
-
+            // 1. Получаем документы GPM с фильтром по периоду
             var gpmDocuments = await _unitOfWork.Documents
                 .FindAsync(x => x.FileType == "GPM");
 
+            if (!string.IsNullOrEmpty(period))
+            {
+                gpmDocuments = gpmDocuments.Where(x => x.Period == period).ToList();
+            }
+
             if (!gpmDocuments.Any())
             {
-                TempData["Error"] = "Нет документов GPM для агрегации";
+                TempData["Error"] = $"Нет документов GPM для агрегации {(string.IsNullOrEmpty(period) ? "" : $"за период {period}")}";
                 return RedirectToAction(nameof(Index));
             }
 
+            // 2. Получаем все GPT записи из этих документов
+            var docIds = gpmDocuments.Select(x => x.Id).ToList();
+            var gptRecords = await _unitOfWork.GptRecords
+                .FindAsync(x => docIds.Contains(x.DocumentId));
+
+            if (!gptRecords.Any())
+            {
+                TempData["Error"] = "Нет записей GPT для агрегации";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // 3. Формируем заголовок
             var firstDoc = gpmDocuments.First();
+            var regionCode = firstDoc.RegionCode ?? "77";
+            
             var header = new GptExportHeader
             {
-                FileName = $"GPT_AGGREGATED_{DateTime.Now:yyyyMMdd_HHmmss}",
-                RegionCode = firstDoc.RegionCode ?? "77",
+                FileName = BuildAggregatedFileName("GPT", regionCode, period),
+                RegionCode = regionCode,
                 RecordsCount = gptRecords.Count(),
                 Data = DateTime.Now.ToString("yyyy-MM-dd")
             };
 
+            // 4. Маппим записи в Export DTO
             var exportRecords = _mapper.Map<List<GptExportRecord>>(gptRecords);
 
+            // 5. Формируем итоговый DTO
             var exportDto = new GptExportDto
             {
                 Header = header,
                 Records = exportRecords
             };
 
+            // 6. Получаем сервис для сериализации
             var service = _serviceProvider.GetService<IXmlService<GptImportDto, GptExportDto, GptEntity>>();
             if (service == null)
             {
@@ -256,12 +211,15 @@ public class ExportController : Controller
                 return RedirectToAction(nameof(Index));
             }
 
+            // 7. Сериализуем в XML
             var xmlContent = await service.SerializeToXmlAsync(exportDto);
 
-            var fileName = BuildFileNameAggregated("GPT", year, month);
+            // 8. Формируем имя файла для скачивания
+            var fileName = BuildAggregatedFileName("GPT", regionCode, period);
             var zipFileName = $"{fileName}.zip";
             var xmlFileName = $"{fileName}.xml";
 
+            // 9. Создаем ZIP архив
             using var memoryStream = new MemoryStream();
             using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
             {
@@ -282,38 +240,40 @@ public class ExportController : Controller
         }
     }
 
-
+    // ==========================================
+    // ОДИНОЧНЫЙ ЭКСПОРТ (БЕЗ ИЗМЕНЕНИЙ)
+    // ==========================================
     [HttpGet]
-    public async Task<IActionResult> ExportGst(int documentId, int? year, int? month)
+    public async Task<IActionResult> ExportGst(int documentId)
     {
-        return await ExportFile(documentId, "GST", year, month);
+        return await ExportFile(documentId, "GST");
     }
 
     [HttpGet]
-    public async Task<IActionResult> ExportGpt(int documentId, int? year, int? month)
+    public async Task<IActionResult> ExportGpt(int documentId)
     {
-        return await ExportFile(documentId, "GPT", year, month);
+        return await ExportFile(documentId, "GPT");
     }
 
     [HttpGet]
-    public async Task<IActionResult> ExportGf(int documentId, int? year, int? month)
+    public async Task<IActionResult> ExportGf(int documentId)
     {
-        return await ExportFile(documentId, "GF", year, month);
+        return await ExportFile(documentId, "GF");
     }
 
     [HttpGet]
-    public async Task<IActionResult> ExportGsm(int documentId, int? year, int? month)
+    public async Task<IActionResult> ExportGsm(int documentId)
     {
-        return await ExportFile(documentId, "GSM", year, month);
+        return await ExportFile(documentId, "GSM");
     }
 
     [HttpGet]
-    public async Task<IActionResult> ExportGpm(int documentId, int? year, int? month)
+    public async Task<IActionResult> ExportGpm(int documentId)
     {
-        return await ExportFile(documentId, "GPM", year, month);
+        return await ExportFile(documentId, "GPM");
     }
 
-    private async Task<IActionResult> ExportFile(int documentId, string fileType, int? year, int? month)
+    private async Task<IActionResult> ExportFile(int documentId, string fileType)
     {
         try
         {
@@ -341,7 +301,8 @@ public class ExportController : Controller
             var exportTask = exportMethod.Invoke(service, new object[] { documentId });
             var xmlContent = await (Task<string>)exportTask!;
 
-            var fileName = BuildFileName(fileType, document.FileName, year, month);
+            // Формируем имя файла для скачивания
+            var fileName = document.FileName;
             var zipFileName = $"{fileName}.zip";
             var xmlFileName = $"{fileName}.xml";
 
@@ -365,6 +326,41 @@ public class ExportController : Controller
         }
     }
 
+    // ==========================================
+    // ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
+    // ==========================================
+
+    /// <summary>
+/// Формирование имени файла для агрегации
+/// Формат: [ТИП][КОД_РЕГИОНА]_[2 ЦИФРЫ ГОДА][2 ЦИФРЫ МЕСЯЦА]_[НОМЕР]
+/// Пример: GST19_2607_1
+/// </summary>
+private string BuildAggregatedFileName(string fileType, string regionCode, string? period)
+{
+    // Получаем год и месяц из периода
+    string yearShort;
+    string month;
+    
+    if (!string.IsNullOrEmpty(period) && period.Length >= 7)
+    {
+        // period = "2026-07"
+        var parts = period.Split('-');
+        yearShort = parts[0].Substring(2, 2); // "26"
+        month = parts[1]; // "07"
+    }
+    else
+    {
+        // Если период не указан - используем текущие
+        yearShort = DateTime.Now.ToString("yy");
+        month = DateTime.Now.ToString("MM");
+    }
+
+    // Номер версии (пока всегда 1)
+    var version = "1";
+
+    // Собираем имя: GST19_2607_1
+    return $"{fileType}{regionCode}_{yearShort}{month}_{version}";
+}
 
     private object? GetXmlService(string fileType)
     {
@@ -378,83 +374,4 @@ public class ExportController : Controller
             _ => null
         };
     }
-
-    private string BuildFileName(string fileType, string baseName, int? year, int? month)
-    {
-        var prefix = fileType.ToUpper();
-        var numberMatch = System.Text.RegularExpressions.Regex.Match(baseName, @"^[A-Z]+(\d+|[A-Z0-9]{6})");
-        var number = numberMatch.Success ? numberMatch.Groups[1].Value : "01";
-
-        var currentYear = year ?? DateTime.Now.Year;
-        var currentMonth = month ?? DateTime.Now.Month;
-
-        var day = DateTime.Now.Day.ToString("D2");
-        var monthStr = currentMonth.ToString("D2");
-        var yearShort = currentYear.ToString("D4").Substring(2, 2);
-
-        var version = "1";
-
-        return $"{prefix}{number}_{day}{monthStr}_{version}";
-    }
-
-    private string BuildFileNameAggregated(string fileType, int? year, int? month)
-    {
-        var prefix = fileType.ToUpper();
-        var currentYear = year ?? DateTime.Now.Year;
-        var currentMonth = month ?? DateTime.Now.Month;
-
-        var day = DateTime.Now.Day.ToString("D2");
-        var monthStr = currentMonth.ToString("D2");
-        var yearShort = currentYear.ToString("D4").Substring(2, 2);
-
-        var version = "1";
-
-        return $"{prefix}_AGGREGATED_{day}{monthStr}_{version}";
-    }
-
-    private List<SelectListItem> GetMonths()
-    {
-        var months = new List<SelectListItem>
-        {
-            new SelectListItem { Value = "", Text = "Все месяцы" }
-        };
-        
-        var monthNames = new[]
-        {
-            "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-            "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
-        };
-
-        for (int i = 1; i <= 12; i++)
-        {
-            months.Add(new SelectListItem 
-            { 
-                Value = i.ToString(), 
-                Text = monthNames[i - 1] 
-            });
-        }
-        
-        return months;
-    }
-
-    private List<SelectListItem> GetYears()
-    {
-        var years = new List<SelectListItem>
-        {
-            new SelectListItem { Value = "", Text = "Все годы" }
-        };
-        
-        for (int i = DateTime.Now.Year; i >= 2020; i--)
-        {
-            years.Add(new SelectListItem { Value = i.ToString(), Text = i.ToString() });
-        }
-        
-        return years;
-    }
-}
-
-public class SelectListItem
-{
-    public string? Value { get; set; }
-    public string? Text { get; set; }
 }

@@ -1,11 +1,12 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RegistrDN.Data;
 using RegistrDN.Models.ViewModels;
 using RegistrDN.Models.Entities;
-using Microsoft.AspNetCore.Authorization;
 
 namespace RegistrDN.Controllers;
 
+[Authorize]
 public class StatisticsController : Controller
 {
     private readonly IUnitOfWork _unitOfWork;
@@ -17,12 +18,15 @@ public class StatisticsController : Controller
         _logger = logger;
     }
 
-    public async Task<IActionResult> Index(string? period)
+    public IActionResult Index(string? period)
     {
         ViewBag.SelectedPeriod = period;
         return View();
     }
 
+    // ==========================================
+    // ПОЛУЧЕНИЕ ДАННЫХ ДЛЯ ДАШБОРДА (async)
+    // ==========================================
     [HttpGet]
     public async Task<IActionResult> GetDashboardData(string? period)
     {
@@ -36,7 +40,6 @@ public class StatisticsController : Controller
                 documents = documents.Where(x => x.Period == period).ToList();
             }
 
-            // 1. Общая статистика
             var totalDocuments = documents.Count();
             var totalGst = documents.Count(x => x.FileType == "GST" || x.FileType == "GSM");
             var totalGpt = documents.Count(x => x.FileType == "GPT" || x.FileType == "GPM");
@@ -44,11 +47,9 @@ public class StatisticsController : Controller
             var successCount = documents.Count(x => x.IsValid);
             var errorCount = totalDocuments - successCount;
 
-            // 2. GST записи
             var gstRecords = await _unitOfWork.GstRecords
                 .FindAsync(x => true);
 
-            // 3. Статистика по периодам (БЕЗ Documents)
             var periodStats = documents
                 .Where(x => !string.IsNullOrEmpty(x.Period))
                 .GroupBy(x => x.Period)
@@ -60,7 +61,6 @@ public class StatisticsController : Controller
                 .OrderBy(x => x.Period)
                 .ToList();
 
-            // 4. Топ диагнозов
             var topDiagnoses = gstRecords
                 .Where(x => !string.IsNullOrEmpty(x.DiagCode))
                 .GroupBy(x => x.DiagCode)
@@ -73,7 +73,6 @@ public class StatisticsController : Controller
                 .Take(10)
                 .ToList();
 
-            // 5. Статистика по МО (БЕЗ Documents)
             var moStats = documents
                 .Where(x => !string.IsNullOrEmpty(x.HospitalCode))
                 .GroupBy(x => x.HospitalCode)
@@ -86,7 +85,6 @@ public class StatisticsController : Controller
                 .Take(10)
                 .ToList();
 
-            // 6. Статусы
             var statusStats = new StatusStatViewModel
             {
                 SuccessCount = successCount,
@@ -94,7 +92,6 @@ public class StatisticsController : Controller
                 TotalCount = totalDocuments
             };
 
-            // 7. Динамика по месяцам
             var monthlyStats = documents
                 .GroupBy(x => new { x.UploadDate.Year, x.UploadDate.Month })
                 .Select(g => new MonthlyStatViewModel
@@ -108,7 +105,6 @@ public class StatisticsController : Controller
                 .Take(12)
                 .ToList();
 
-            // 8. Уникальные пациенты
             var uniquePatients = gstRecords
                 .Select(x => x.ENP)
                 .Distinct()
@@ -139,6 +135,9 @@ public class StatisticsController : Controller
         }
     }
 
+    // ==========================================
+    // ПОЛУЧЕНИЕ СПИСКА ПЕРИОДОВ
+    // ==========================================
     [HttpGet]
     public async Task<IActionResult> GetPeriods()
     {

@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Экспорт и журнал документов";
+    var periods = ViewBag.Periods as List<string> ?? new List<string>();
 }
 
 <!-- Заголовок страницы -->
@@ -58,7 +59,9 @@
     </div>
 </div>
 
-<!-- АГРЕГАЦИЯ -->
+<!-- ========================================== -->
+<!-- БЛОК АГРЕГАЦИИ (ОБНОВЛЕННЫЙ)             -->
+<!-- ========================================== -->
 <div class="aggregation-box">
     <div class="info">
         <i class="fas fa-layer-group"></i>
@@ -69,21 +72,14 @@
     </div>
     <div class="aggregation-actions" style="display: flex; gap: 16px; flex-wrap: wrap; width: 100%; margin-top: 12px;">
         
-        <!-- GST -->
+        <!-- GST Агрегация -->
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: #f7fafc; padding: 8px 12px; border-radius: 8px;">
             <span style="font-weight: 600; font-size: 13px; color: var(--text-primary);">GST:</span>
-            <select class="form-select" id="yearGstSelect" style="width: 100px; padding: 5px 10px; font-size: 13px; border: 1px solid var(--border-color); border-radius: 6px;">
-                <option value="">Год</option>
-                @foreach (var year in ViewBag.Years as List<SelectListItem> ?? new List<SelectListItem>())
+            <select class="form-select" id="periodGstSelect" style="width: 150px; padding: 5px 10px; font-size: 13px; border: 1px solid var(--border-color); border-radius: 6px;">
+                <option value="">Все периоды</option>
+                @foreach (var period in periods)
                 {
-                    <option value="@year.Value">@year.Text</option>
-                }
-            </select>
-            <select class="form-select" id="monthGstSelect" style="width: 120px; padding: 5px 10px; font-size: 13px; border: 1px solid var(--border-color); border-radius: 6px;">
-                <option value="">Месяц</option>
-                @foreach (var month in ViewBag.Months as List<SelectListItem> ?? new List<SelectListItem>())
-                {
-                    <option value="@month.Value">@month.Text</option>
+                    <option value="@period">@period</option>
                 }
             </select>
             <button class="btn-primary-custom" onclick="exportAggregated('GST')" style="padding: 5px 16px; font-size: 13px;">
@@ -91,21 +87,14 @@
             </button>
         </div>
 
-        <!-- GPT -->
+        <!-- GPT Агрегация -->
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: #f7fafc; padding: 8px 12px; border-radius: 8px;">
             <span style="font-weight: 600; font-size: 13px; color: var(--text-primary);">GPT:</span>
-            <select class="form-select" id="yearGptSelect" style="width: 100px; padding: 5px 10px; font-size: 13px; border: 1px solid var(--border-color); border-radius: 6px;">
-                <option value="">Год</option>
-                @foreach (var year in ViewBag.Years as List<SelectListItem> ?? new List<SelectListItem>())
+            <select class="form-select" id="periodGptSelect" style="width: 150px; padding: 5px 10px; font-size: 13px; border: 1px solid var(--border-color); border-radius: 6px;">
+                <option value="">Все периоды</option>
+                @foreach (var period in periods)
                 {
-                    <option value="@year.Value">@year.Text</option>
-                }
-            </select>
-            <select class="form-select" id="monthGptSelect" style="width: 120px; padding: 5px 10px; font-size: 13px; border: 1px solid var(--border-color); border-radius: 6px;">
-                <option value="">Месяц</option>
-                @foreach (var month in ViewBag.Months as List<SelectListItem> ?? new List<SelectListItem>())
-                {
-                    <option value="@month.Value">@month.Text</option>
+                    <option value="@period">@period</option>
                 }
             </select>
             <button class="btn-success-custom" onclick="exportAggregated('GPT')" style="padding: 5px 16px; font-size: 13px;">
@@ -142,6 +131,10 @@
             <label>Период</label>
             <select id="periodFilter">
                 <option value="">Все периоды</option>
+                @foreach (var period in periods)
+                {
+                    <option value="@period">@period</option>
+                }
             </select>
         </div>
         <div class="filter-group">
@@ -186,7 +179,7 @@
                     <th style="text-align:center;">Период</th>
                     <th style="text-align:center;">Записей</th>
                     <th style="text-align:center;">Статус</th>
-                    <th style="text-align:center;width:130px;">Действия</th>
+                    <th style="text-align:center;width:140px;">Действия</th>
                 </tr>
             </thead>
             <tbody>
@@ -252,7 +245,9 @@
             </select>
         </div>
         <nav>
-            <ul class="pagination" id="paginationControls"></ul>
+            <ul class="pagination" id="paginationControls">
+                <!-- JavaScript добавит пагинацию -->
+            </ul>
         </nav>
     </div>
 </div>
@@ -261,7 +256,30 @@
     <script>
         $(document).ready(function() {
 
+            // ==========================================
+            // АГРЕГАЦИЯ (ОБНОВЛЕННАЯ)
+            // ==========================================
+            window.exportAggregated = function(type) {
+                let period, url;
+                
+                if (type === 'GST') {
+                    period = $('#periodGstSelect').val();
+                    url = '@Url.Action("ExportAggregatedGst", "Export")';
+                } else {
+                    period = $('#periodGptSelect').val();
+                    url = '@Url.Action("ExportAggregatedGpt", "Export")';
+                }
+                
+                let params = [];
+                if (period) params.push(`period=${encodeURIComponent(period)}`);
+                
+                const fullUrl = params.length > 0 ? `${url}?${params.join('&')}` : url;
+                window.location.href = fullUrl;
+            };
+
+            // ==========================================
             // ЗАПОЛНЕНИЕ ФИЛЬТРА ПЕРИОДОВ
+            // ==========================================
             function populatePeriodFilter() {
                 const periods = new Set();
                 $('#documentsTable tbody tr').each(function() {
@@ -292,29 +310,9 @@
                 });
             }
 
-            // АГРЕГАЦИЯ
-            window.exportAggregated = function(type) {
-                let year, month, url;
-                
-                if (type === 'GST') {
-                    year = $('#yearGstSelect').val();
-                    month = $('#monthGstSelect').val();
-                    url = '@Url.Action("ExportAggregatedGst", "Export")';
-                } else {
-                    year = $('#yearGptSelect').val();
-                    month = $('#monthGptSelect').val();
-                    url = '@Url.Action("ExportAggregatedGpt", "Export")';
-                }
-                
-                let params = [];
-                if (year) params.push(`year=${year}`);
-                if (month) params.push(`month=${month}`);
-                
-                const fullUrl = params.length > 0 ? `${url}?${params.join('&')}` : url;
-                window.location.href = fullUrl;
-            };
-
-            // ФИЛЬТРАЦИЯ
+            // ==========================================
+            // ФИЛЬТРАЦИЯ ТАБЛИЦЫ
+            // ==========================================
             function filterTable() {
                 const search = $('#searchInput').val().toLowerCase();
                 const type = $('#typeFilter').val();
@@ -364,7 +362,9 @@
                 if (e.key === 'Enter') filterTable();
             });
 
+            // ==========================================
             // ПАГИНАЦИЯ
+            // ==========================================
             let currentPage = 1;
             const rowsPerPage = 50;
 
@@ -410,7 +410,9 @@
                 location.reload();
             });
 
+            // ==========================================
             // УДАЛЕНИЕ
+            // ==========================================
             window.deleteDocument = function(id) {
                 if (confirm('Удалить документ #' + id + '?')) {
                     $.ajax({
@@ -434,12 +436,9 @@
                 }
             };
 
-            // ЭКСПОРТ В EXCEL
-            window.exportTable = function() {
-                alert('Функция экспорта в Excel будет добавлена позже');
-            };
-
+            // ==========================================
             // ИНИЦИАЛИЗАЦИЯ
+            // ==========================================
             populatePeriodFilter();
             setTimeout(paginate, 100);
 
