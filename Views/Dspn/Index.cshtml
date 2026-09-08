@@ -1,0 +1,166 @@
+@{
+    ViewData["Title"] = "Импорт DSPN";
+}
+
+<div class="page-header">
+    <div>
+        <h1>📥 Импорт DSPN</h1>
+        <span class="subtitle">Сведения о застрахованных лицах, состоящих на диспансерном наблюдении (от МО)</span>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Documents" class="btn-outline-custom">
+            <i class="fas fa-file-alt"></i> Список документов
+        </a>
+        <button class="btn-primary-custom" onclick="location.reload()">
+            <i class="fas fa-sync"></i> Обновить
+        </button>
+    </div>
+</div>
+
+<!-- Сообщения -->
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle"></i> @Html.Raw(TempData["Success"])
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="fas fa-exclamation-circle"></i> @Html.Raw(TempData["Error"])
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Info"] != null)
+{
+    <div class="alert alert-info alert-dismissible fade show">
+        <i class="fas fa-info-circle"></i> @Html.Raw(TempData["Info"])
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Warnings"] != null)
+{
+    <div class="alert alert-warning alert-dismissible fade show">
+        <i class="fas fa-exclamation-triangle"></i> <strong>Предупреждения:</strong><br />
+        @Html.Raw(TempData["Warnings"])
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["ResponseXml"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-file-code"></i> Ответный файл сформирован!
+        <a asp-action="DownloadResponse" class="btn btn-sm btn-primary-custom ms-2">
+            <i class="fas fa-download"></i> Скачать ответ
+        </a>
+    </div>
+}
+
+<div class="table-wrapper" style="padding: 30px;">
+    <div class="text-center mb-4">
+        <div style="font-size: 48px; color: #242424;">
+            <i class="fas fa-upload"></i>
+        </div>
+        <h4 class="mt-2">Загрузите файл DSPN</h4>
+        <p class="text-muted">Поддерживаются ZIP архивы (.zip) и XML файлы (.xml)</p>
+        <p class="text-muted small">
+            <strong>Формат имени:</strong> DSPN_[КОД_МО]T[КОД_ТФОМС]_[ГОД][МЕСЯЦ].XML
+            <br />
+            <span class="text-info">Пример: DSPN_M190006T19_2608.XML</span>
+        </p>
+    </div>
+
+    <form asp-action="Upload" method="post" enctype="multipart/form-data" id="uploadForm">
+        @Html.AntiForgeryToken()
+
+        <div class="row g-3">
+            <div class="col-md-12">
+                <div class="upload-area" id="uploadArea" style="border: 2px dashed var(--border-color); border-radius: var(--radius); padding: 40px 20px; text-align: center; transition: all 0.3s;">
+                    <i class="fas fa-file-upload" style="font-size: 32px; color: var(--text-muted);"></i>
+                    <p class="mt-2 mb-1" id="fileLabel"><strong>Перетащите файл сюда или нажмите для выбора</strong></p>
+                    <p class="text-muted small" id="fileNameDisplay">Файл не выбран</p>
+                    <input type="file" name="file" id="fileInput" style="display: none;" accept=".zip,.xml" required />
+                    <button type="button" class="btn-primary-custom mt-2" onclick="document.getElementById('fileInput').click()">
+                        <i class="fas fa-folder-open"></i> Выбрать файл
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-3">
+            <button type="submit" class="btn-primary-custom" id="uploadBtn" style="display: none;">
+                <i class="fas fa-upload"></i> Загрузить
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const fileLabel = document.getElementById('fileLabel');
+            const fileNameDisplay = document.getElementById('fileNameDisplay');
+            const uploadBtn = document.getElementById('uploadBtn');
+
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.style.borderColor = 'var(--accent-blue)';
+                this.style.background = '#ebf5ff';
+            });
+
+            uploadArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                this.style.borderColor = 'var(--border-color)';
+                this.style.background = 'transparent';
+            });
+
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.style.borderColor = 'var(--border-color)';
+                this.style.background = 'transparent';
+
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    fileInput.files = files;
+                    updateFileInfo(files[0]);
+                }
+            });
+
+            uploadArea.addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', function() {
+                if (this.files.length > 0) {
+                    updateFileInfo(this.files[0]);
+                }
+            });
+
+            function updateFileInfo(file) {
+                const ext = file.name.split('.').pop().toLowerCase();
+                const icon = ext === 'zip' ? 'fa-file-archive' : 'fa-file-code';
+                const color = ext === 'zip' ? 'var(--warning-yellow)' : 'var(--accent-blue)';
+
+                fileLabel.innerHTML = `<i class="fas ${icon}" style="color: ${color};"></i> <strong>${file.name}</strong>`;
+                fileNameDisplay.textContent = `Размер: ${(file.size / 1024).toFixed(1)} KB | Тип: ${ext.toUpperCase()}`;
+                uploadBtn.style.display = 'block';
+            }
+
+            // Автоотправка после выбора файла
+            $('#fileInput').on('change', function() {
+                if (this.files.length > 0) {
+                    setTimeout(() => {
+                        document.getElementById('uploadForm').submit();
+                    }, 500);
+                }
+            });
+        });
+    </script>
+}

@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+    <!-- ==========================================
+         КОРНЕВОЙ ЭЛЕМЕНТ
+         ========================================== -->
+    <xs:element name="ZL_LIST">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="ZGLV" type="ZGLV_Type" />
+                <xs:element name="SV_PR_MER" type="SV_PR_MER_Type" maxOccurs="unbounded" />
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ==========================================
+         ЗАГОЛОВОК ФАЙЛА
+         ========================================== -->
+    <xs:complexType name="ZGLV_Type">
+        <xs:sequence>
+            <xs:element name="VERSION" type="Version_Type" />
+            <xs:element name="DATA" type="Date_Type" />
+            <xs:element name="FILENAME" type="FileName_Type" />
+            <xs:element name="CODMO" type="CodMo_Type" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ==========================================
+         ЗАПИСЬ О ПАЦИЕНТЕ
+         ========================================== -->
+    <xs:complexType name="SV_PR_MER_Type">
+        <xs:sequence>
+            <xs:element name="NOMER_Z" type="NomerZ_Type" />
+            <xs:element name="PERSON_ID" type="PersonId_Type" minOccurs="0" />
+            <xs:element name="SMOCOD" type="SmoCod_Type" />
+            <xs:element name="ENP" type="Enp_Type" minOccurs="0" />
+            <xs:element name="FAM" type="Fam_Type" />
+            <xs:element name="IM" type="Im_Type" />
+            <xs:element name="OT" type="Ot_Type" minOccurs="0" />
+            <xs:element name="DR" type="Date_Type" />
+            <xs:element name="W" type="W_Type" />
+            <xs:element name="DOCTYPE" type="DocType_Type" minOccurs="0" />
+            <xs:element name="DOCSER" type="DocSer_Type" minOccurs="0" />
+            <xs:element name="DOCNUM" type="DocNum_Type" minOccurs="0" />
+            <xs:element name="SNILS" type="Snils_Type" minOccurs="0" />
+            <xs:element name="VPOLIS" type="Vpolis_Type" />
+            <xs:element name="SPOLIS" type="Spolis_Type" minOccurs="0" />
+            <xs:element name="NPOLIS" type="Npolis_Type" />
+            <xs:element name="TEL" type="Tel_Type" minOccurs="0" />
+            <xs:element name="IDDOKT" type="Iddokt_Type" />
+            <xs:element name="ADRES" type="Adres_Type" minOccurs="0" />
+            <xs:element name="KAT_LG" type="KatLg_Type" minOccurs="0" />
+            <xs:element name="YEAR" type="Year_Type" />
+            <xs:element name="COMMENT" type="Comment_Type" minOccurs="0" />
+            <xs:element name="SV_PL_MER" type="SV_PL_MER_Type" maxOccurs="12" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ==========================================
+         МЕРОПРИЯТИЕ
+         ========================================== -->
+    <xs:complexType name="SV_PL_MER_Type">
+        <xs:sequence>
+            <xs:element name="MONTH" type="Month_Type" />
+            <xs:element name="DISP" type="Disp_Type" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ==========================================
+         ОПРЕДЕЛЕНИЯ ТИПОВ
+         ========================================== -->
+
+    <!-- VERSION -->
+    <xs:simpleType name="Version_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="1\.[0-1]" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- DATA (ГГГГММДД) -->
+    <xs:simpleType name="Date_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d{8}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- FILENAME -->
+    <xs:simpleType name="FileName_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="26" />
+            <xs:pattern value="[A-Za-z0-9_]+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- CODMO -->
+    <xs:simpleType name="CodMo_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="6" />
+            <xs:pattern value="\d+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- NOMER_Z -->
+    <xs:simpleType name="NomerZ_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="8" />
+            <xs:pattern value="\d+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- PERSON_ID -->
+    <xs:simpleType name="PersonId_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="16" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- SMOCOD -->
+    <xs:simpleType name="SmoCod_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="5" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ENP -->
+    <xs:simpleType name="Enp_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="16" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- FAM -->
+    <xs:simpleType name="Fam_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="40" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- IM -->
+    <xs:simpleType name="Im_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="40" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- OT -->
+    <xs:simpleType name="Ot_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="40" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- W -->
+    <xs:simpleType name="W_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[1-2]" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- DOCTYPE -->
+    <xs:simpleType name="DocType_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="2" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- DOCSER -->
+    <xs:simpleType name="DocSer_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- DOCNUM -->
+    <xs:simpleType name="DocNum_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="20" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- SNILS -->
+    <xs:simpleType name="Snils_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="14" />
+            <xs:pattern value="\d{3}-\d{3}-\d{3}-\d{2}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- VPOLIS -->
+    <xs:simpleType name="Vpolis_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[1-4]" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- SPOLIS -->
+    <xs:simpleType name="Spolis_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- NPOLIS -->
+    <xs:simpleType name="Npolis_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="16" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- TEL -->
+    <xs:simpleType name="Tel_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="20" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- IDDOKT -->
+    <xs:simpleType name="Iddokt_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="14" />
+            <xs:pattern value="\d{3}-\d{3}-\d{3}-\d{2}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ADRES -->
+    <xs:simpleType name="Adres_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="100" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- KAT_LG -->
+    <xs:simpleType name="KatLg_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="2" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- YEAR -->
+    <xs:simpleType name="Year_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d{4}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- COMMENT -->
+    <xs:simpleType name="Comment_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="250" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- MONTH -->
+    <xs:simpleType name="Month_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="(0[1-9]|1[0-2])" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- DISP -->
+    <xs:simpleType name="Disp_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="3" />
+            <xs:pattern value="(ДВ4|ОПВ)" />
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

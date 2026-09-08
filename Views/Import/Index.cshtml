@@ -1,7 +1,6 @@
 @{
     ViewData["Title"] = "Импорт данных";
 
-    // Получаем список периодов (последние 12 месяцев)
     var periods = new List<SelectListItem>();
     for (int i = 0; i < 12; i++)
     {
@@ -15,8 +14,8 @@
 <!-- Заголовок страницы -->
 <div class="page-header">
     <div>
-        <h1>Импорт данных</h1>
-        <span class="subtitle">Загрузка файлов GST, GPT, GF, GSM, GPM</span>
+        <h1>📥 Импорт данных</h1>
+        <span class="subtitle">Загрузка файлов GST, GPT, GF, GSM, GPM, DSPN, PROF, DF</span>
     </div>
     <div class="page-actions">
         <button class="btn-primary-custom" onclick="location.reload()">
@@ -50,15 +49,6 @@
     </div>
 }
 
-@if (TempData["Warnings"] != null)
-{
-    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-        <i class="fas fa-exclamation-triangle"></i> <strong>Предупреждения:</strong><br />
-        @Html.Raw(TempData["Warnings"])
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-}
-
 <!-- ========================================== -->
 <!-- КАРТОЧКА ЗАГРУЗКИ                         -->
 <!-- ========================================== -->
@@ -75,32 +65,27 @@
         @Html.AntiForgeryToken()
 
         <div class="row g-3">
-            <!-- ЛЕВАЯ ЧАСТЬ: Drag & Drop -->
             <div class="col-md-7">
                 <div class="upload-area" id="uploadArea" style="border: 2px dashed var(--border-color); border-radius: var(--radius); padding: 40px 20px; text-align: center; transition: all 0.3s;">
                     <i class="fas fa-file-upload" style="font-size: 32px; color: var(--text-muted);"></i>
                     <p class="mt-2 mb-1" id="fileLabel"><strong>Перетащите файл сюда</strong></p>
                     <p class="text-muted small" id="fileNameDisplay">Файл не выбран</p>
                     <input type="file" name="file" id="fileInput" style="display: none;" accept=".zip,.xml" required />
-                    
-                    <!-- КНОПКА ВЫБОРА ФАЙЛА -->
                     <button type="button" class="btn-primary-custom mt-2" id="selectFileBtn">
                         <i class="fas fa-folder-open"></i> Выбрать файл
                     </button>
                 </div>
             </div>
 
-            <!-- ПРАВАЯ ЧАСТЬ: Выбор периода и требования -->
             <div class="col-md-5">
                 <div class="card" style="border: 1px solid var(--border-color); border-radius: var(--radius);">
                     <div class="card-body">
-                        <!-- ВЫБОР ПЕРИОДА -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">
                                 <i class="fas fa-calendar-alt" style="color: #242424;"></i> Выберите период
                                 <span class="text-danger">*</span>
                             </label>
-                            <select name="period" class="form-select" id="periodSelect" required style="border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px;">
+                            <select name="period" class="form-select" id="periodSelect" required>
                                 <option value="">-- Выберите период --</option>
                                 @foreach (var period in periods)
                                 {
@@ -121,7 +106,6 @@
                             <li>Максимальный размер: <strong>50 MB</strong></li>
                         </ul>
 
-                        <!-- КНОПКА ЗАГРУЗКИ -->
                         <div class="d-grid mt-3">
                             <button type="submit" class="btn-primary-custom" id="uploadBtn" disabled style="width: 100%; opacity: 0.6; cursor: not-allowed;">
                                 <i class="fas fa-upload"></i> Загрузить
@@ -140,21 +124,14 @@
     <div class="mt-4">
         <h6><i class="fas fa-tag text-muted"></i> Примеры корректных имен:</h6>
         <div class="row g-2 mt-1">
-            <div class="col-auto">
-                <span class="badge-type gst">GST19_2605_1</span>
-            </div>
-            <div class="col-auto">
-                <span class="badge-type gpt">GPT01_1506_2</span>
-            </div>
-            <div class="col-auto">
-                <span class="badge-type gf">GF03_2007_3</span>
-            </div>
-            <div class="col-auto">
-                <span class="badge-type gsm">GSM190006_2605_1</span>
-            </div>
-            <div class="col-auto">
-                <span class="badge-type gpm">GPM190006_2605_1</span>
-            </div>
+            <div class="col-auto"><span class="badge-type gst">GST19_2605_1</span></div>
+            <div class="col-auto"><span class="badge-type gpt">GPT01_1506_2</span></div>
+            <div class="col-auto"><span class="badge-type gf">GF03_2007_3</span></div>
+            <div class="col-auto"><span class="badge-type gsm">GSM190006_2605_1</span></div>
+            <div class="col-auto"><span class="badge-type gpm">GPM190006_2605_1</span></div>
+            <div class="col-auto"><span class="badge-type dspn" style="background:#e0e7ff; color:#3730a3;">DSPN_M190006T19_2608</span></div>
+            <div class="col-auto"><span class="badge-type prof" style="background:#fce4ec; color:#880e4f;">PROF_M190001T19_26071</span></div>
+            <div class="col-auto"><span class="badge-type" style="background:#fef3c7; color:#92400e;">DF19_2606</span></div>
         </div>
     </div>
 </div>
@@ -179,7 +156,22 @@
     <div class="stat-card red">
         <div class="stat-icon"><i class="fas fa-hospital"></i></div>
         <div class="stat-label">GSM / GPM</div>
-        <div class="stat-value" style="font-size: 14px; font-weight: 400; color: var(--text-muted);">Данные от МО</div>
+        <div class="stat-value" style="font-size: 14px; font-weight: 400; color: var(--text-muted);">Данные от МО (ДН)</div>
+    </div>
+    <div class="stat-card purple">
+        <div class="stat-icon"><i class="fas fa-clipboard-list"></i></div>
+        <div class="stat-label">DSPN</div>
+        <div class="stat-value" style="font-size: 14px; font-weight: 400; color: var(--text-muted);">Сведения о ДН от МО</div>
+    </div>
+    <div class="stat-card pink">
+        <div class="stat-icon"><i class="fas fa-stethoscope"></i></div>
+        <div class="stat-label">PROF</div>
+        <div class="stat-value" style="font-size: 14px; font-weight: 400; color: var(--text-muted);">Диспансеризация и профосмотры</div>
+    </div>
+    <div class="stat-card orange">
+        <div class="stat-icon"><i class="fas fa-users"></i></div>
+        <div class="stat-label">DF</div>
+        <div class="stat-value" style="font-size: 14px; font-weight: 400; color: var(--text-muted);">Списки диспансеризации</div>
     </div>
 </div>
 
@@ -367,7 +359,6 @@
                     $(this).css('border-color', 'var(--border-color)');
                 }
             });
-
         });
     </script>
 }

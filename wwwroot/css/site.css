@@ -306,6 +306,9 @@ body {
 .stat-card.green .stat-icon i { color: #38a169; }
 .stat-card.yellow .stat-icon i { color: #d69e2e; }
 .stat-card.red .stat-icon i { color: #e53e3e; }
+.stat-card.purple .stat-icon i { color: #7c3aed; }
+.stat-card.pink .stat-icon i { color: #db2777; }
+.stat-card.orange .stat-icon i { color: #f59e0b; }
 
 /* ============================================
    БЛОК АГРЕГАЦИИ

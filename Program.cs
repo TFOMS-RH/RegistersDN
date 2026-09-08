@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RegistrDN.Data;
@@ -8,18 +9,29 @@ using RegistrDN.Models.DTOs.Export;
 using RegistrDN.Services.Interfaces;
 using RegistrDN.Services.Xml;
 using RegistrDN.Services.Zip;
+using RegistrDN.Services;
+using RegistrDN.Services.Validation;
 using AutoMapper;
+
+
+Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+
 builder.Services.AddControllersWithViews();
 
-// ============================================
-// Identity
-// ============================================
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sqlOptions => sqlOptions
+            .EnableRetryOnFailure(
+                maxRetryCount: 3,
+                maxRetryDelay: TimeSpan.FromSeconds(10),
+                errorNumbersToAdd: null
+            )
+            .CommandTimeout(120)
+    )
 );
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
@@ -52,6 +64,36 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 // ============================================
+// ПОЛИТИКИ АВТОРИЗАЦИИ
+// ============================================
+builder.Services.AddAuthorization(options =>
+{
+    // Политика для просмотра всех данных (ТФОМС + Admin)
+    options.AddPolicy("ViewAllData", policy =>
+        policy.RequireRole("Admin", "TFOMS"));
+
+    // Политика для управления пользователями (только Admin)
+    options.AddPolicy("ManageUsers", policy =>
+        policy.RequireRole("Admin"));
+
+    // Политика для импорта (только MO + Admin)
+    options.AddPolicy("ImportData", policy =>
+        policy.RequireRole("Admin", "MO"));
+
+    // Политика для экспорта (только MO + Admin)
+    options.AddPolicy("ExportData", policy =>
+        policy.RequireRole("Admin", "MO"));
+
+    // Политика для просмотра статистики (ТФОМС + Admin)
+    options.AddPolicy("ViewStatistics", policy =>
+        policy.RequireRole("Admin", "TFOMS"));
+
+    // Политика для просмотра своих данных (MO)
+    options.AddPolicy("ViewOwnData", policy =>
+        policy.RequireRole("Admin", "MO", "TFOMS"));
+});
+
+// ============================================
 // Регистрация репозиториев
 // ============================================
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -68,9 +110,18 @@ builder.Services.AddScoped<IXmlService<GptImportDto, GptExportDto, GptEntity>, G
 builder.Services.AddScoped<IXmlService<GfImportDto, GfExportDto, GfEntity>, GfXmlService>();
 builder.Services.AddScoped<IXmlService<GsmImportDto, GsmExportDto, GstEntity>, GsmXmlService>();
 builder.Services.AddScoped<IXmlService<GpmImportDto, GpmExportDto, GptEntity>, GpmXmlService>();
+builder.Services.AddScoped<IDiagnosisFilterService, DiagnosisFilterService>();
+builder.Services.AddScoped<IXmlServiceWithResponse<DspnImportDto, DspnExportDto, DspnEntity, DspnResponseDto>, DspnXmlService>();
+builder.Services.AddScoped<IXmlServiceWithResponse<ProfImportDto, ProfExportDto, ProfEntity, ProfResponseDto>, ProfXmlService>();
+builder.Services.AddScoped<IXmlService<DfImportDto, DfExportDto, DfEntity>, DfXmlService>();
 
 // Регистрация Zip сервиса
 builder.Services.AddScoped<ZipValidationService>();
+
+// ============================================
+// Регистрация сервисов валидации
+// ============================================
+builder.Services.AddScoped<LogicalValidator>();
 
 var app = builder.Build();
 

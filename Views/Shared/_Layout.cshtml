@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="utf-8" />
@@ -13,9 +13,6 @@
 </head>
 <body>
 
-    <!-- ==========================================
-    ХЕДЕР
-    ========================================== -->
     <header class="app-header">
         <a href="/" class="logo">
             <i class="fas fa-heartbeat"></i>
@@ -27,54 +24,92 @@
         </button>
     </header>
 
-    <!-- ==========================================
-    ВЫПАДАЮЩЕЕ МЕНЮ
-    ========================================== -->
     <div class="menu-overlay" id="menuOverlay"></div>
 
     <div class="menu-panel" id="menuPanel">
-        <!-- Работа с данными -->
-        <div class="menu-section">
-            <div class="menu-section-title">Работа с данными</div>
-            <a asp-controller="Import" asp-action="Index" class="menu-item" data-page="import">
-                <i class="fas fa-upload"></i> Импорт
-            </a>
-            <a asp-controller="Export" asp-action="Index" class="menu-item" data-page="export">
-                <i class="fas fa-file-alt"></i> Журнал и экспорт
-                <span class="badge" id="docCount">0</span>
-            </a>
-            <a asp-controller="Statistics" asp-action="Index" class="menu-item" data-page="statistics">
-                <i class="fas fa-chart-bar"></i> Статистика
-            </a>
-        </div>
-        <div class="menu-divider"></div>
+        <!-- ========================================== -->
+        <!-- РАБОТА С ДАННЫМИ (Admin + MO)              -->
+        <!-- ========================================== -->
+        @if (User.IsInRole("Admin") || User.IsInRole("MO"))
+        {
+            <div class="menu-section">
+                <div class="menu-section-title">Работа с данными</div>
+                <a asp-controller="Import" asp-action="Index" class="menu-item" data-page="import">
+                    <i class="fas fa-upload"></i> Импорт
+                </a>
+                <a asp-controller="Export" asp-action="Index" class="menu-item" data-page="export">
+                    <i class="fas fa-file-alt"></i> Журнал и экспорт
+                    <span class="badge" id="docCount">0</span>
+                </a>
+            </div>
+        }
 
-        <!-- Регистр ДН -->
+        <!-- ========================================== -->
+        <!-- РЕГИСТРЫ ДН (Все роли)                     -->
+        <!-- ========================================== -->
         <div class="menu-section">
-            <div class="menu-section-title">Регистр ДН</div>
-            <a asp-controller="Patients" asp-action="Index" class="menu-item" data-page="patients">
-                <i class="fas fa-list"></i> Регистр ДН
+            <div class="menu-section-title">Регистры ДН</div>
+            <a asp-controller="Patients" asp-action="Index" class="menu-item" data-page="patients-gsm">
+                <i class="fas fa-list"></i> Регистр ДН (GSM)
                 <span class="badge" id="patientsCount">0</span>
             </a>
+            <a asp-controller="PatientsDspn" asp-action="Index" class="menu-item" data-page="patients-dspn">
+                <i class="fas fa-clipboard-list"></i> Регистр ДН (DSPN)
+                <span class="badge" id="dspnPatientsCount">0</span>
+            </a>
+            <a asp-controller="Prof" asp-action="Index" class="menu-item" data-page="prof">
+                <i class="fas fa-stethoscope"></i> Регистр ПРОФ
+            </a>
         </div>
 
-        <div class="menu-divider"></div>
+        <!-- ========================================== -->
+        <!-- СТАТИСТИКА (Только Admin + ТФОМС)          -->
+        <!-- ========================================== -->
+        @if (User.IsInRole("Admin") || User.IsInRole("TFOMS"))
+        {
+            <div class="menu-section">
+                <div class="menu-section-title">Аналитика</div>
+                <a asp-controller="Statistics" asp-action="Index" class="menu-item" data-page="statistics">
+                    <i class="fas fa-chart-bar"></i> Статистика
+                </a>
+            </div>
+        }
 
-       <!-- Администрирование -->
-        <div class="menu-section">
-            <div class="menu-section-title">Администрирование</div>
-            <a asp-controller="Account" asp-action="Profile" class="menu-item" data-page="profile">
-                <i class="fas fa-user-cog"></i> Профиль
-            </a>
-            @if (User.IsInRole("Admin"))
-            {
+        <!-- ========================================== -->
+        <!-- АДМИНИСТРИРОВАНИЕ (Только Admin)           -->
+        <!-- ========================================== -->
+        @if (User.IsInRole("Admin"))
+        {
+            <div class="menu-section">
+                <div class="menu-section-title">Администрирование</div>
+                <a asp-controller="Account" asp-action="Profile" class="menu-item" data-page="profile">
+                    <i class="fas fa-user-cog"></i> Профиль
+                </a>
                 <a asp-controller="Admin" asp-action="Users" class="menu-item" data-page="users">
                     <i class="fas fa-users"></i> Пользователи
                 </a>
                 <a asp-controller="Admin" asp-action="Register" class="menu-item" data-page="register-user">
                     <i class="fas fa-user-plus"></i> Добавить пользователя
                 </a>
-            }
+            </div>
+        }
+        else
+        {
+            <!-- ========================================== -->
+            <!-- ПРОФИЛЬ (Все пользователи)                 -->
+            <!-- ========================================== -->
+            <div class="menu-section">
+                <div class="menu-section-title">Профиль</div>
+                <a asp-controller="Account" asp-action="Profile" class="menu-item" data-page="profile">
+                    <i class="fas fa-user-cog"></i> Профиль
+                </a>
+            </div>
+        }
+
+        <!-- ========================================== -->
+        <!-- ВЫХОД (Все пользователи)                   -->
+        <!-- ========================================== -->
+        <div class="menu-section">
             <form asp-controller="Account" asp-action="Logout" method="post" style="margin:0;">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="menu-item danger" style="background:none; border:none; width:100%; text-align:left; font-size:14px; padding:10px 24px; cursor:pointer;">
@@ -84,25 +119,16 @@
         </div>
     </div>
 
-    <!-- ==========================================
-    ОСНОВНОЙ КОНТЕНТ
-    ========================================== -->
     <main class="container-main">
         @RenderBody()
     </main>
 
-    <!-- ==========================================
-    SCRIPTS
-    ========================================== -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 
     <script>
-        // ============================================
-        // ВЫПАДАЮЩЕЕ МЕНЮ
-        // ============================================
         (function() {
             const menuToggle = document.getElementById('menuToggle');
             const menuPanel = document.getElementById('menuPanel');
@@ -124,7 +150,6 @@
                 menuOverlay.addEventListener('click', toggleMenu);
             }
 
-            // Активный пункт меню
             const menuItems = document.querySelectorAll('.menu-item');
             const currentUrl = window.location.pathname;
 
@@ -149,7 +174,6 @@
                 }
             });
 
-            // Обновление счетчика документов
             function updateDocCount() {
                 $.get('/Export/GetCount', function(data) {
                     const badge = document.getElementById('docCount');

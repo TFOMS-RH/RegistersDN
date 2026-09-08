@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+    <!-- ==========================================
+         КОРНЕВОЙ ЭЛЕМЕНТ
+         ========================================== -->
+    <xs:element name="DN_LIST">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="ZGLV" type="ZGLV_Type" />
+                <xs:element name="ZAP" type="ZAP_Type" maxOccurs="unbounded" />
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ==========================================
+         ЗАГОЛОВОК ФАЙЛА
+         ========================================== -->
+    <xs:complexType name="ZGLV_Type">
+        <xs:sequence>
+            <xs:element name="VERSION" type="Version_Type" />
+            <xs:element name="FILE_TYPE" type="FileType_Type" />
+            <xs:element name="DATA" type="Date_Type" />
+            <xs:element name="FILENAME" type="FileName_Type" />
+            <xs:element name="REGION_CD" type="RegionCd_Type" />
+            <xs:element name="NN_FILE" type="NnFile_Type" />
+            <xs:element name="SD_Z" type="SdZ_Type" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ==========================================
+         ЗАПИСЬ
+         ========================================== -->
+    <xs:complexType name="ZAP_Type">
+        <xs:sequence>
+            <xs:element name="CODE_L" type="CodeL_Type" />
+            <xs:element name="ENP" type="Enp_Type" />
+            <xs:element name="CODE_PINF" type="CodePinf_Type" />
+            <xs:element name="DN_PATIENT_ID" type="DnPatientId_Type" minOccurs="0" />
+            <xs:element name="DIAG_CODE" type="DiagCode_Type" />
+            <xs:element name="DIAG_DATE" type="Date_Type" />
+            <xs:element name="DATE_DN_IN" type="Date_Type" />
+            <xs:element name="DATE_DN_OUT" type="Date_Type" minOccurs="0" />
+            <xs:element name="DN_PRVS" type="DnPrvs_Type" />
+            <xs:element name="LAST_SL_MCOD" type="LastSlMcod_Type" minOccurs="0" />
+            <xs:element name="LAST_SL_NHISTORY" type="LastSlNhistory_Type" minOccurs="0" />
+            <xs:element name="LAST_SL_DATE" type="Date_Type" minOccurs="0" />
+            <xs:element name="STATUS_DN_IN" type="StatusDnIn_Type" />
+            <xs:element name="REASON_DN_OUT" type="ReasonDnOut_Type" minOccurs="0" />
+            <xs:element name="REASON_DN_IN" type="ReasonDnIn_Type" />
+            <xs:element name="MCOD" type="Mcod_Type" />
+            <xs:element name="MO_ASSIGN" type="MoAssign_Type" minOccurs="0" />
+            <xs:element name="DATE_CHECKING" type="Date_Type" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ==========================================
+         ОПРЕДЕЛЕНИЯ ТИПОВ
+         ========================================== -->
+
+    <xs:simpleType name="Version_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="P1\.20" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="FileType_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="GST" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="Date_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d{4}-\d{2}-\d{2}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="FileName_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="RegionCd_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d{2}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="NnFile_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="SdZ_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="CodeL_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="36" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="Enp_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="20" />
+            <xs:pattern value="[A-Za-z0-9]+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="CodePinf_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="ДН" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DnPatientId_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DiagCode_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="10" />
+            <xs:pattern value="[A-Z][0-9]{2}(\.[0-9]{1,2})?" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DnPrvs_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="LastSlMcod_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="6" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="LastSlNhistory_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="StatusDnIn_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[1-2]" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="ReasonDnOut_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="ReasonDnIn_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="10[1-7]" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="Mcod_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="MoAssign_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-1]" />
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

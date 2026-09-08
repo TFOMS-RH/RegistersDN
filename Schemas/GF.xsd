@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+    <xs:element name="DN_PLAN">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="ZGLV" type="ZGLV_Type" />
+                <xs:element name="ZAP" type="ZAP_Type" maxOccurs="unbounded" />
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:complexType name="ZGLV_Type">
+        <xs:sequence>
+            <xs:element name="VERSION" type="Version_Type" />
+            <xs:element name="FILE_TYPE" type="FileType_Type" />
+            <xs:element name="DATA" type="Date_Type" />
+            <xs:element name="FILENAME" type="FileName_Type" />
+            <xs:element name="REGION_CD" type="RegionCd_Type" />
+            <xs:element name="SD_Z" type="SdZ_Type" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ZAP_Type">
+        <xs:sequence>
+            <xs:element name="CODE_P" type="CodeP_Type" />
+            <xs:element name="DN_PATIENT_ID" type="DnPatientId_Type" minOccurs="0" />
+            <xs:element name="ENP" type="Enp_Type" />
+            <xs:element name="CODE_PINF" type="CodePinf_Type" />
+            <xs:element name="MCOD_PLAN" type="McodPlan_Type" />
+            <xs:element name="MO_PODR_ID" type="MoPodrId_Type" minOccurs="0" />
+            <xs:element name="MED_AREA_CODE" type="MedAreaCode_Type" minOccurs="0" />
+            <xs:element name="MO_ASSIGN" type="MoAssign_Type" />
+            <xs:element name="END_DATE_INF" type="Date_Type" />
+            <xs:element name="PRIMARY_INF" type="PrimaryInf_Type" />
+            <xs:element name="DS_CODE" type="DsCode_Type" minOccurs="0" />
+            <xs:element name="PLAN_DATE_START" type="Date_Type" />
+            <xs:element name="PLAN_DATE_END" type="Date_Type" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="Version_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="P3\.20" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="FileType_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="GPT" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="Date_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d{4}-\d{2}-\d{2}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="FileName_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="RegionCd_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d{2}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="SdZ_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="CodeP_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DnPatientId_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="Enp_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="20" />
+            <xs:pattern value="[A-Za-z0-9]+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="CodePinf_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="ДН" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="McodPlan_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="MoPodrId_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="MedAreaCode_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="MoAssign_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-1]" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="PrimaryInf_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[1-2]" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DsCode_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="10" />
+            <xs:pattern value="[A-Z][0-9]{2}(\.[0-9]{1,2})?" />
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

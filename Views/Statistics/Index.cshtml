@@ -142,7 +142,6 @@
                 $('#loadingIndicator').show();
                 $('#dashboardContent').hide();
 
-                // Добавляем параметр периода в запрос
                 let url = '@Url.Action("GetDashboardData", "Statistics")';
                 if (period) {
                     url += '?period=' + encodeURIComponent(period);
@@ -347,7 +346,7 @@
             }
 
             // ==========================================
-            // 4. ФИЛЬТРАЦИЯ (ИСПРАВЛЕННАЯ)
+            // 4. ФИЛЬТРАЦИЯ
             // ==========================================
             $('#applyFilters').on('click', function() {
                 const period = $('#periodFilter').val();
@@ -359,7 +358,6 @@
                 loadDashboard('');
             });
 
-            // Фильтр по Enter
             $('#periodFilter').on('keypress', function(e) {
                 if (e.key === 'Enter') {
                     $('#applyFilters').click();

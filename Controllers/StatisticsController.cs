@@ -6,7 +6,7 @@ using RegistrDN.Models.Entities;
 
 namespace RegistrDN.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Admin, TFOMS")]
 public class StatisticsController : Controller
 {
     private readonly IUnitOfWork _unitOfWork;
@@ -24,9 +24,6 @@ public class StatisticsController : Controller
         return View();
     }
 
-    // ==========================================
-    // ПОЛУЧЕНИЕ ДАННЫХ ДЛЯ ДАШБОРДА (async)
-    // ==========================================
     [HttpGet]
     public async Task<IActionResult> GetDashboardData(string? period)
     {
@@ -135,9 +132,6 @@ public class StatisticsController : Controller
         }
     }
 
-    // ==========================================
-    // ПОЛУЧЕНИЕ СПИСКА ПЕРИОДОВ
-    // ==========================================
     [HttpGet]
     public async Task<IActionResult> GetPeriods()
     {

@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+    <xs:element name="DN">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="ZGLV" type="ZGLV_Type" />
+                <xs:element name="ZAP" type="ZAP_Type" maxOccurs="unbounded" />
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:complexType name="ZGLV_Type">
+        <xs:sequence>
+            <xs:element name="VERSION" type="Version_Type" />
+            <xs:element name="FILE_TYPE" type="FileType_Type" />
+            <xs:element name="DATA" type="Date_Type" />
+            <xs:element name="FILENAME" type="FileName_Type" />
+            <xs:element name="REGION_CD" type="RegionCd_Type" />
+            <xs:element name="PERIOD" type="Period_Type" />
+            <xs:element name="SD_Z" type="SdZ_Type" />
+            <xs:element name="SD_VALITED_ENP" type="SdValitedEnp_Type" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ZAP_Type">
+        <xs:sequence>
+            <xs:element name="DN_PATIENT_ID" type="DnPatientId_Type" minOccurs="0" />
+            <xs:element name="ENP" type="Enp_Type" />
+            <xs:element name="W" type="W_Type" minOccurs="0" />
+            <xs:element name="DR" type="Date_Type" minOccurs="0" />
+            <xs:element name="SMO" type="Smo_Type" minOccurs="0" />
+            <xs:element name="ATTACH_MCODE" type="AttachMcode_Type" minOccurs="0" />
+            <xs:element name="ATTACH_DATE" type="Date_Type" minOccurs="0" />
+            <xs:element name="SMO_REGION_CD" type="SmoRegionCd_Type" minOccurs="0" />
+            <xs:element name="GROUP_RH_CD" type="GroupRhCd_Type" minOccurs="0" />
+            <xs:element name="GROUP_RH_DS" type="GroupRhDs_Type" minOccurs="0" />
+            <xs:element name="DN_PRVS" type="DnPrvs_Type" minOccurs="0" />
+            <xs:element name="GROUP_RH_PROFILE" type="GroupRhProfile_Type" minOccurs="0" />
+            <xs:element name="GROUP_RH_NAME" type="GroupRhName_Type" minOccurs="0" />
+            <xs:element name="DN_RULE_IN_NAME" type="DnRuleInName_Type" minOccurs="0" />
+            <xs:element name="DN_GIS" type="DnGis_Type" minOccurs="0" />
+            <xs:element name="DN_LIST" type="DnList_Type" minOccurs="0" />
+            <xs:element name="DN_PLAN" type="DnPlan_Type" minOccurs="0" />
+            <xs:element name="INSERT_DTTM" type="Date_Type" minOccurs="0" />
+            <xs:element name="UPDATE_DTTM" type="Date_Type" minOccurs="0" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="DnGis_Type">
+        <xs:sequence>
+            <xs:element name="TRIGGER_SCHET_FILENAME" type="TriggerSchetnFilename_Type" minOccurs="0" />
+            <xs:element name="TRIGGER_SCHET_CODE" type="TriggerSchetnCode_Type" minOccurs="0" />
+            <xs:element name="TRIGGER_NSCHET" type="TriggerNschet_Type" minOccurs="0" />
+            <xs:element name="TRIGGER_DSCHET" type="Date_Type" minOccurs="0" />
+            <xs:element name="TRIGGER_IDCASE" type="TriggerIdcase_Type" minOccurs="0" />
+            <xs:element name="TRIGGER_SL_ID" type="TriggerSlId_Type" minOccurs="0" />
+            <xs:element name="TRIGGER_SL_NHISTORY" type="TriggerSlNhistory_Type" minOccurs="0" />
+            <xs:element name="TRIGGER_DS_CD" type="TriggerDsCd_Type" minOccurs="0" />
+            <xs:element name="TRIGGER_MCODE" type="TriggerMcode_Type" minOccurs="0" />
+            <xs:element name="TRIGGER_DT" type="Date_Type" minOccurs="0" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="DnList_Type">
+        <xs:sequence>
+            <xs:element name="DN_LIST_PERIOD_CD" type="DnListPeriodCd_Type" minOccurs="0" />
+            <xs:element name="DN_LIST_FILENAME" type="DnListFilename_Type" minOccurs="0" />
+            <xs:element name="CODE_L" type="CodeL_Type" minOccurs="0" />
+            <xs:element name="DN_LIST_RESULT_CODE" type="DnListResultCode_Type" minOccurs="0" />
+            <xs:element name="DN_LIST_DATE_CHEKING" type="Date_Type" minOccurs="0" />
+            <xs:element name="DN_LIST_RESULT_DESCR" type="DnListResultDescr_Type" minOccurs="0" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="DnPlan_Type">
+        <xs:sequence>
+            <xs:element name="DN_PLAN_PERIOD" type="DnPlanPeriod_Type" minOccurs="0" />
+            <xs:element name="DN_PLAN_FILENAME" type="DnPlanFilename_Type" minOccurs="0" />
+            <xs:element name="CODE_P" type="CodeP_Type" minOccurs="0" />
+            <xs:element name="DN_PLAN_RESULT_CODE" type="DnPlanResultCode_Type" minOccurs="0" />
+            <xs:element name="DN_PLAN_DATE_CHEKING" type="Date_Type" minOccurs="0" />
+            <xs:element name="DN_PLAN_RESULT_DESCR" type="DnPlanResultDescr_Type" minOccurs="0" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Типы -->
+    <xs:simpleType name="Version_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="P5\.00" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="FileType_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="GF" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="Date_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d{4}-\d{2}-\d{2}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="FileName_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="RegionCd_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d{2}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="Period_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d{6}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="SdZ_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="SdValitedEnp_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DnPatientId_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="Enp_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="20" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="W_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[1-2]" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="Smo_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="5" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="AttachMcode_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="SmoRegionCd_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="GroupRhCd_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="GroupRhDs_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DnPrvs_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="GroupRhProfile_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="255" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="GroupRhName_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="255" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DnRuleInName_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="255" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Остальные типы для DN_GIS, DN_LIST, DN_PLAN -->
+    <xs:simpleType name="TriggerSchetnFilename_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="TriggerSchetnCode_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="TriggerNschet_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="20" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="TriggerIdcase_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="TriggerSlId_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="TriggerSlNhistory_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="TriggerDsCd_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="TriggerMcode_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DnListPeriodCd_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DnListFilename_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="CodeL_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DnListResultCode_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DnListResultDescr_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="4000" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DnPlanPeriod_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DnPlanFilename_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="CodeP_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DnPlanResultCode_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DnPlanResultDescr_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="0" />
+            <xs:maxLength value="4000" />
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

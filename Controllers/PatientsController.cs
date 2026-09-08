@@ -1,11 +1,12 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RegistrDN.Data;
 using RegistrDN.Models.Entities;
 using RegistrDN.Models.ViewModels;
-using Microsoft.AspNetCore.Authorization;
 
 namespace RegistrDN.Controllers;
 
+[Authorize]
 public class PatientsController : Controller
 {
     private readonly IUnitOfWork _unitOfWork;
@@ -17,12 +18,24 @@ public class PatientsController : Controller
         _logger = logger;
     }
 
-    public async Task<IActionResult> Index(string? search, string? period, string? hospitalCode)
+    public async Task<IActionResult> Index(string? search, string? period, string? hospitalCode, int page = 1)
     {
+        // 1. Получаем все GST записи
         var gstRecords = await _unitOfWork.GstRecords
             .FindAsync(x => true);
 
-        var patients = gstRecords
+        // MO видит только своих пациентов
+        if (User.IsInRole("MO"))
+        {
+            var userHospitalCode = User.FindFirst("HospitalCode")?.Value;
+            if (!string.IsNullOrEmpty(userHospitalCode))
+            {
+                gstRecords = gstRecords.Where(x => x.Mcod == userHospitalCode).ToList();
+            }
+        }
+
+        // 2. Формируем список пациентов (группировка по ENP)
+        var patientsQuery = gstRecords
             .GroupBy(x => x.ENP)
             .Select(g => new PatientViewModel
             {
@@ -36,14 +49,15 @@ public class PatientsController : Controller
                 Mcod = g.First().Mcod,
                 LastSlDate = g.First().LastSlDate,
                 SourceFileType = "GST",
-                SourceDocumentId = g.First().DocumentId
+                SourceDocumentId = g.First().DocumentId,
+                Period = g.First().Document?.Period
             })
             .ToList();
 
-        // Фильтры
+        // 3. Применяем фильтры
         if (!string.IsNullOrEmpty(search))
         {
-            patients = patients.Where(x => 
+            patientsQuery = patientsQuery.Where(x => 
                 (x.ENP != null && x.ENP.Contains(search)) ||
                 (x.DiagCode != null && x.DiagCode.Contains(search))
             ).ToList();
@@ -51,17 +65,29 @@ public class PatientsController : Controller
 
         if (!string.IsNullOrEmpty(period))
         {
-            patients = patients.Where(x => x.Period == period).ToList();
+            patientsQuery = patientsQuery.Where(x => x.Period == period).ToList();
         }
 
         if (!string.IsNullOrEmpty(hospitalCode))
         {
-            patients = patients.Where(x => x.Mcod == hospitalCode).ToList();
+            patientsQuery = patientsQuery.Where(x => x.Mcod == hospitalCode).ToList();
         }
 
-        var periods = await _unitOfWork.Documents
+        // 4. Считаем статистику ДО пагинации
+        var totalPatients = patientsQuery.Count;
+        var onDnCount = patientsQuery.Count(x => x.DateDnOut == null);
+        var offDnCount = patientsQuery.Count(x => x.DateDnOut != null);
+        var uniqueDiagnoses = patientsQuery.Select(x => x.DiagCode).Distinct().Count();
+
+        ViewBag.TotalPatients = totalPatients;
+        ViewBag.OnDnCount = onDnCount;
+        ViewBag.OffDnCount = offDnCount;
+        ViewBag.UniqueDiagnoses = uniqueDiagnoses;
+
+        // 5. Получаем список периодов для фильтра
+        var documents = await _unitOfWork.Documents
             .FindAsync(x => !string.IsNullOrEmpty(x.Period));
-        var periodList = periods
+        var periodList = documents
             .Select(x => x.Period)
             .Where(p => !string.IsNullOrEmpty(p))
             .Distinct()
@@ -69,14 +95,21 @@ public class PatientsController : Controller
             .ToList();
 
         ViewBag.Periods = periodList;
-        ViewBag.TotalCount = patients.Count;
 
-        // Пагинация (по 10 записей)
-        int pageSize = 10;
-        int page = 1;
-        var paginated = patients.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        // 6. Пагинация (фиксировано 10 записей)
+        const int pageSize = 10;
+        var totalCount = patientsQuery.Count;
+        var paginatedPatients = patientsQuery
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
 
-        return View(paginated);
+        ViewBag.CurrentPage = page;
+        ViewBag.PageSize = pageSize;
+        ViewBag.TotalCount = totalCount;
+        ViewBag.TotalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+        return View(paginatedPatients);
     }
 
     [HttpGet]
@@ -144,6 +177,17 @@ public class PatientsController : Controller
     {
         var gstRecords = await _unitOfWork.GstRecords
             .FindAsync(x => true);
+
+        // MO видит только своих пациентов
+        if (User.IsInRole("MO"))
+        {
+            var userHospitalCode = User.FindFirst("HospitalCode")?.Value;
+            if (!string.IsNullOrEmpty(userHospitalCode))
+            {
+                gstRecords = gstRecords.Where(x => x.Mcod == userHospitalCode).ToList();
+            }
+        }
+
         var uniquePatients = gstRecords.Select(x => x.ENP).Distinct().Count();
         return Json(new { count = uniquePatients });
     }

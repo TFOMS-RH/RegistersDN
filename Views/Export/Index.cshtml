@@ -1,20 +1,32 @@
 @model IEnumerable<RegistrDN.Models.Entities.DnDocumentEntity>
 
 @{
-    ViewData["Title"] = "Экспорт и журнал документов";
+    ViewData["Title"] = "Журнал и экспорт";
     var periods = ViewBag.Periods as List<string> ?? new List<string>();
+    var moList = ViewBag.MoList as List<string> ?? new List<string>();
+    var currentPage = ViewBag.CurrentPage ?? 1;
+    var totalPages = ViewBag.TotalPages ?? 1;
+    var totalCount = ViewBag.TotalCount ?? 0;
+    var search = ViewBag.Search as string ?? "";
+    var type = ViewBag.Type as string ?? "";
+    var hospital = ViewBag.Hospital as string ?? "";
+    var period = ViewBag.Period as string ?? "";
+    var status = ViewBag.Status as string ?? "";
 }
 
 <!-- Заголовок страницы -->
 <div class="page-header">
     <div>
-        <h1>Экспорт и журнал документов</h1>
-        <span class="subtitle">Управление и выгрузка файлов</span>
+        <h1>📋 Журнал и экспорт</h1>
+        <span class="subtitle">Управление загруженными файлами: проверка, статусы, выгрузка</span>
     </div>
     <div class="page-actions">
-        <a href="#" class="btn-primary-custom" onclick="location.reload()">
+        <button class="btn-primary-custom" onclick="location.reload()">
             <i class="fas fa-sync"></i> Обновить
-        </a>
+        </button>
+        <button class="btn-success-custom" onclick="checkAllDocuments()">
+            <i class="fas fa-check-double"></i> Проверить все
+        </button>
     </div>
 </div>
 
@@ -35,105 +47,164 @@
     </div>
 }
 
-<!-- СТАТИСТИКА -->
+@if (TempData["Info"] != null)
+{
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="fas fa-info-circle"></i> @TempData["Info"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- ========================================== -->
+<!-- СТАТИСТИКА ПО СТАТУСАМ                     -->
+<!-- ========================================== -->
 <div class="stat-grid">
     <div class="stat-card blue">
-        <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
-        <div class="stat-label">Всего документов</div>
-        <div class="stat-value" id="totalCount">@Model.Count()</div>
+        <div class="stat-icon"><i class="fas fa-upload"></i></div>
+        <div class="stat-label">📥 Загружено</div>
+        <div class="stat-value" id="statusUploaded">@ViewBag.UploadedCount</div>
+    </div>
+    <div class="stat-card yellow">
+        <div class="stat-icon"><i class="fas fa-spinner fa-pulse"></i></div>
+        <div class="stat-label">⏳ Проверяется</div>
+        <div class="stat-value" id="statusChecking">@ViewBag.CheckingCount</div>
     </div>
     <div class="stat-card green">
         <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
-        <div class="stat-label">Успешно загружено</div>
-        <div class="stat-value">@Model.Count(x => x.IsValid)</div>
-    </div>
-    <div class="stat-card yellow">
-        <div class="stat-icon"><i class="fas fa-clock"></i></div>
-        <div class="stat-label">GST / GSM</div>
-        <div class="stat-value">@Model.Count(x => x.FileType == "GST" || x.FileType == "GSM")</div>
+        <div class="stat-label">✅ Готово</div>
+        <div class="stat-value" id="statusReady">@ViewBag.ReadyCount</div>
     </div>
     <div class="stat-card red">
-        <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+        <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+        <div class="stat-label">❌ Ошибка</div>
+        <div class="stat-value" id="statusError">@ViewBag.ErrorCount</div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- СТАТИСТИКА ПО ТИПАМ                       -->
+<!-- ========================================== -->
+<div class="stat-grid" style="grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));">
+    <div class="stat-card" style="border-left-color: #3182ce;">
+        <div class="stat-label">GST / GSM</div>
+        <div class="stat-value" style="font-size:16px;">@ViewBag.GstCount</div>
+    </div>
+    <div class="stat-card" style="border-left-color: #38a169;">
         <div class="stat-label">GPT / GPM</div>
-        <div class="stat-value">@Model.Count(x => x.FileType == "GPT" || x.FileType == "GPM")</div>
+        <div class="stat-value" style="font-size:16px;">@ViewBag.GptCount</div>
+    </div>
+    <div class="stat-card" style="border-left-color: #7c3aed;">
+        <div class="stat-label">DSPN</div>
+        <div class="stat-value" style="font-size:16px;">@ViewBag.DspnCount</div>
+    </div>
+    <div class="stat-card" style="border-left-color: #db2777;">
+        <div class="stat-label">PROF</div>
+        <div class="stat-value" style="font-size:16px;">@ViewBag.ProfCount</div>
+    </div>
+    <div class="stat-card" style="border-left-color: #d69e2e;">
+        <div class="stat-label">GF</div>
+        <div class="stat-value" style="font-size:16px;">@ViewBag.GfCount</div>
+    </div>
+    <div class="stat-card" style="border-left-color: #f59e0b;">
+        <div class="stat-label">DF</div>
+        <div class="stat-value" style="font-size:16px;">@ViewBag.DfCount</div>
     </div>
 </div>
 
 <!-- ========================================== -->
-<!-- БЛОК АГРЕГАЦИИ (ОБНОВЛЕННЫЙ)             -->
+<!-- БЛОК АГРЕГАЦИИ (ТОЛЬКО ДЛЯ ADMIN)        -->
 <!-- ========================================== -->
-<div class="aggregation-box">
-    <div class="info">
-        <i class="fas fa-layer-group"></i>
-        <div>
-            <strong>Агрегация данных от МО</strong>
-            <small>— объединение всех GSM → GST и GPM → GPT</small>
+@if (User.IsInRole("Admin"))
+{
+    <div class="aggregation-box">
+        <div class="info">
+            <i class="fas fa-layer-group"></i>
+            <div>
+                <strong>Агрегация данных</strong>
+                <small>— формирование сводных файлов для ГИС ОМС</small>
+            </div>
+        </div>
+        <div class="aggregation-actions" style="display: flex; gap: 16px; flex-wrap: wrap; width: 100%; margin-top: 12px;">
+            <!-- GST Агрегация -->
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); flex: 1; min-width: 280px;">
+                <span style="font-weight: 600; font-size: 13px;">GST (GSM→GST):</span>
+                <select class="form-select" id="periodGstSelect" style="width: 130px; padding: 5px 10px; font-size: 13px;">
+                    <option value="">Все периоды</option>
+                    @foreach (var p in periods)
+                    {
+                        <option value="@p">@p</option>
+                    }
+                </select>
+                <select class="form-select" id="moGstSelect" style="width: 110px; padding: 5px 10px; font-size: 13px;">
+                    <option value="">Все МО</option>
+                    @foreach (var mo in moList)
+                    {
+                        <option value="@mo">@mo</option>
+                    }
+                </select>
+                <button class="btn-primary-custom" onclick="exportAggregated('GST')" style="padding: 5px 16px; font-size: 13px;">
+                    <i class="fas fa-download"></i> Выгрузить
+                </button>
+            </div>
+            <!-- GPT Агрегация -->
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); flex: 1; min-width: 280px;">
+                <span style="font-weight: 600; font-size: 13px;">GPT (GPM→GPT):</span>
+                <select class="form-select" id="periodGptSelect" style="width: 130px; padding: 5px 10px; font-size: 13px;">
+                    <option value="">Все периоды</option>
+                    @foreach (var p in periods)
+                    {
+                        <option value="@p">@p</option>
+                    }
+                </select>
+                <select class="form-select" id="moGptSelect" style="width: 110px; padding: 5px 10px; font-size: 13px;">
+                    <option value="">Все МО</option>
+                    @foreach (var mo in moList)
+                    {
+                        <option value="@mo">@mo</option>
+                    }
+                </select>
+                <button class="btn-primary-custom" onclick="exportAggregated('GPT')" style="padding: 5px 16px; font-size: 13px;">
+                    <i class="fas fa-download"></i> Выгрузить
+                </button>
+            </div>
         </div>
     </div>
-    <div class="aggregation-actions" style="display: flex; gap: 16px; flex-wrap: wrap; width: 100%; margin-top: 12px;">
-        
-        <!-- GST Агрегация -->
-        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: #f7fafc; padding: 8px 12px; border-radius: 8px;">
-            <span style="font-weight: 600; font-size: 13px; color: var(--text-primary);">GST:</span>
-            <select class="form-select" id="periodGstSelect" style="width: 150px; padding: 5px 10px; font-size: 13px; border: 1px solid var(--border-color); border-radius: 6px;">
-                <option value="">Все периоды</option>
-                @foreach (var period in periods)
-                {
-                    <option value="@period">@period</option>
-                }
-            </select>
-            <button class="btn-primary-custom" onclick="exportAggregated('GST')" style="padding: 5px 16px; font-size: 13px;">
-                <i class="fas fa-download"></i> Выгрузить
-            </button>
-        </div>
+}
 
-        <!-- GPT Агрегация -->
-        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: #f7fafc; padding: 8px 12px; border-radius: 8px;">
-            <span style="font-weight: 600; font-size: 13px; color: var(--text-primary);">GPT:</span>
-            <select class="form-select" id="periodGptSelect" style="width: 150px; padding: 5px 10px; font-size: 13px; border: 1px solid var(--border-color); border-radius: 6px;">
-                <option value="">Все периоды</option>
-                @foreach (var period in periods)
-                {
-                    <option value="@period">@period</option>
-                }
-            </select>
-            <button class="btn-success-custom" onclick="exportAggregated('GPT')" style="padding: 5px 16px; font-size: 13px;">
-                <i class="fas fa-download"></i> Выгрузить
-            </button>
-        </div>
-
-    </div>
-</div>
-
-<!-- ФИЛЬТРЫ -->
+<!-- ========================================== -->
+<!-- ФИЛЬТРЫ                                    -->
+<!-- ========================================== -->
 <div class="filter-bar">
     <div class="filter-row">
         <div class="filter-group" style="flex: 2;">
             <label>Поиск</label>
-            <input type="text" placeholder="Имя файла, код МО..." id="searchInput">
+            <input type="text" placeholder="Имя файла, код МО..." id="searchInput" value="@search">
         </div>
         <div class="filter-group">
             <label>Тип файла</label>
             <select id="typeFilter">
                 <option value="">Все типы</option>
-                <option value="GST">GST</option>
-                <option value="GPT">GPT</option>
-                <option value="GF">GF</option>
-                <option value="GSM">GSM</option>
-                <option value="GPM">GPM</option>
+                <option value="GST" selected="@(type == "GST")">GST</option>
+                <option value="GPT" selected="@(type == "GPT")">GPT</option>
+                <option value="GF" selected="@(type == "GF")">GF</option>
+                <option value="GSM" selected="@(type == "GSM")">GSM</option>
+                <option value="GPM" selected="@(type == "GPM")">GPM</option>
+                <option value="DSPN" selected="@(type == "DSPN")">DSPN</option>
+                <option value="PROF" selected="@(type == "PROF")">PROF</option>
+                <option value="DF" selected="@(type == "DF")">DF</option>
             </select>
         </div>
         <div class="filter-group">
             <label>Код МО</label>
-            <input type="text" placeholder="Например: 190006" id="hospitalFilter">
+            <input type="text" placeholder="Например: 190006" id="hospitalFilter" value="@hospital">
         </div>
         <div class="filter-group">
             <label>Период</label>
             <select id="periodFilter">
                 <option value="">Все периоды</option>
-                @foreach (var period in periods)
+                @foreach (var p in periods)
                 {
-                    <option value="@period">@period</option>
+                    <option value="@p" selected="@(period == p)">@p</option>
                 }
             </select>
         </div>
@@ -141,8 +212,10 @@
             <label>Статус</label>
             <select id="statusFilter">
                 <option value="">Все статусы</option>
-                <option value="success">Успешно</option>
-                <option value="error">Ошибка</option>
+                <option value="0" selected="@(status == "0")">📥 Загружен</option>
+                <option value="1" selected="@(status == "1")">⏳ Проверяется</option>
+                <option value="2" selected="@(status == "2")">✅ Готов</option>
+                <option value="3" selected="@(status == "3")">❌ Ошибка</option>
             </select>
         </div>
         <div class="filter-actions">
@@ -156,13 +229,15 @@
     </div>
 </div>
 
-<!-- ТАБЛИЦА -->
+<!-- ========================================== -->
+<!-- ТАБЛИЦА ДОКУМЕНТОВ                         -->
+<!-- ========================================== -->
 <div class="table-wrapper">
     <div class="table-toolbar">
-        <span class="count">Найдено записей: <strong id="recordCount">@Model.Count()</strong></span>
+        <span class="count">Найдено записей: <strong>@totalCount</strong></span>
         <div>
-            <button class="btn-outline-custom" style="padding:4px 12px;font-size:12px;" onclick="exportTable()">
-                <i class="fas fa-file-excel"></i> Экспорт в Excel
+            <button class="btn-outline-custom" style="padding:4px 12px;font-size:12px;" onclick="refreshStatusCounts()">
+                <i class="fas fa-sync"></i> Обновить статусы
             </button>
         </div>
     </div>
@@ -178,25 +253,35 @@
                     <th>Код МО</th>
                     <th style="text-align:center;">Период</th>
                     <th style="text-align:center;">Записей</th>
-                    <th style="text-align:center;">Статус</th>
-                    <th style="text-align:center;width:140px;">Действия</th>
+                    <th style="text-align:center;min-width:120px;">Статус</th>
+                    <th style="text-align:center;min-width:180px;">Действия</th>
                 </tr>
             </thead>
             <tbody>
                 @{
-                    int counter = 1;
+                    int counter = 1 + (currentPage - 1) * 20;
                 }
                 @foreach (var doc in Model)
                 {
-                    <tr>
+                    <tr data-doc-id="@doc.Id">
                         <td>@counter</td>
                         <td>@doc.UploadDate.ToString("dd.MM.yyyy HH:mm")</td>
-                        <td>@doc.FileName</td>
+                        <td>
+                            <a href="@Url.Action("Details", "Export", new { id = doc.Id })" class="text-decoration-none">
+                                @doc.FileName
+                            </a>
+                        </td>
                         <td>
                             <span class="badge-type @(doc.FileType == "GST" ? "gst" : 
                                 doc.FileType == "GPT" ? "gpt" : 
                                 doc.FileType == "GF" ? "gf" :
-                                doc.FileType == "GSM" ? "gsm" : "gpm")">
+                                doc.FileType == "GSM" ? "gsm" : 
+                                doc.FileType == "GPM" ? "gpm" :
+                                doc.FileType == "DSPN" ? "dspn" : 
+                                doc.FileType == "PROF" ? "prof" :
+                                "df")" style="@(doc.FileType == "DSPN" ? "background:#e0e7ff; color:#3730a3;" : 
+                                             doc.FileType == "PROF" ? "background:#fce4ec; color:#880e4f;" :
+                                             doc.FileType == "DF" ? "background:#fef3c7; color:#92400e;" : "")">
                                 @doc.FileType
                             </span>
                         </td>
@@ -204,25 +289,46 @@
                         <td style="text-align:center;">@(!string.IsNullOrEmpty(doc.Period) ? doc.Period : "-")</td>
                         <td style="text-align:center;">@doc.RecordsCount</td>
                         <td style="text-align:center;">
-                            @if (doc.IsValid)
+                            <span class="badge-status @doc.Status.GetCssClass()" id="statusBadge_@doc.Id">
+                                @doc.Status.GetDisplayName()
+                            </span>
+                            @if (doc.Status == DocumentStatus.Error && !string.IsNullOrEmpty(doc.ValidationErrors))
                             {
-                                <span class="badge-status success">Успешно</span>
-                            }
-                            else
-                            {
-                                <span class="badge-status error">Ошибка</span>
+                                <br/>
+                                <span class="text-danger small" title="@doc.ValidationErrors">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    @(doc.ValidationErrors.Length > 30 ? doc.ValidationErrors.Substring(0, 30) + "..." : doc.ValidationErrors)
+                                </span>
                             }
                         </td>
-                        <td style="text-align:center;">
-                            <a href="@Url.Action("Details", "Export", new { id = doc.Id })" 
-                               class="btn-sm-icon primary" title="Просмотр">
-                                <i class="fas fa-eye"></i>
-                            </a>
-                            <a href="@Url.Action("Export" + doc.FileType, "Export", new { documentId = doc.Id })" 
-                               class="btn-sm-icon primary" title="Скачать ZIP">
-                                <i class="fas fa-download"></i>
-                            </a>
-                            <button class="btn-sm-icon danger" title="Удалить" onclick="deleteDocument(@doc.Id)">
+                        <td style="text-align:center; white-space:nowrap;">
+                            <!-- Проверить (только для Uploaded и Error) -->
+                            @if (doc.Status == DocumentStatus.Uploaded || doc.Status == DocumentStatus.Error)
+                            {
+                                <button class="btn-sm-icon primary" onclick="checkDocument(@doc.Id)" title="Проверить">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            }
+                            else if (doc.Status == DocumentStatus.Checking)
+                            {
+                                <span class="text-muted"><i class="fas fa-spinner fa-spin"></i></span>
+                            }
+                            else if (doc.Status == DocumentStatus.Ready)
+                            {
+                                <span class="text-success"><i class="fas fa-check-circle"></i></span>
+                            }
+
+                            <!-- Скачать (только если готов) -->
+                            @if (doc.Status == DocumentStatus.Ready || User.IsInRole("Admin"))
+                            {
+                                <a href="@Url.Action("Export" + doc.FileType, "Export", new { documentId = doc.Id })" 
+                                   class="btn-sm-icon primary" title="Скачать ZIP">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                            }
+
+                            <!-- Удалить -->
+                            <button class="btn-sm-icon danger" onclick="deleteDocument(@doc.Id)" title="Удалить">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -236,220 +342,247 @@
     <!-- Пагинация -->
     <div class="pagination-bar">
         <div class="page-size">
-            <span>Показывать по:</span>
-            <select id="pageSize">
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50" selected>50</option>
-                <option value="100">100</option>
-            </select>
+            <span>Показано @Model.Count() из @totalCount записей</span>
         </div>
         <nav>
-            <ul class="pagination" id="paginationControls">
-                <!-- JavaScript добавит пагинацию -->
+            <ul class="pagination">
+                @if (currentPage > 1)
+                {
+                    <li class="page-item">
+                        <a class="page-link" href="@Url.Action("Index", new { 
+                            page = currentPage - 1, 
+                            search = search,
+                            type = type,
+                            hospital = hospital,
+                            period = period,
+                            status = status
+                        })">«</a>
+                    </li>
+                }
+                else
+                {
+                    <li class="page-item disabled"><span class="page-link">«</span></li>
+                }
+
+                @for (int i = 1; i <= Math.Min(totalPages, 7); i++)
+                {
+                    <li class="page-item @(i == currentPage ? "active" : "")">
+                        <a class="page-link" href="@Url.Action("Index", new { 
+                            page = i, 
+                            search = search,
+                            type = type,
+                            hospital = hospital,
+                            period = period,
+                            status = status
+                        })">@i</a>
+                    </li>
+                }
+
+                @if (currentPage < totalPages)
+                {
+                    <li class="page-item">
+                        <a class="page-link" href="@Url.Action("Index", new { 
+                            page = currentPage + 1, 
+                            search = search,
+                            type = type,
+                            hospital = hospital,
+                            period = period,
+                            status = status
+                        })">»</a>
+                    </li>
+                }
+                else
+                {
+                    <li class="page-item disabled"><span class="page-link">»</span></li>
+                }
             </ul>
         </nav>
+        <span style="font-size:13px; color:var(--text-muted);">
+            Страница @currentPage из @totalPages
+        </span>
     </div>
 </div>
+
+<!-- Скрытый токен для AJAX -->
+@Html.AntiForgeryToken()
 
 @section Scripts {
     <script>
         $(document).ready(function() {
 
             // ==========================================
-            // АГРЕГАЦИЯ (ОБНОВЛЕННАЯ)
+            // АГРЕГАЦИЯ (для Admin)
             // ==========================================
             window.exportAggregated = function(type) {
-                let period, url;
-                
-                if (type === 'GST') {
-                    period = $('#periodGstSelect').val();
-                    url = '@Url.Action("ExportAggregatedGst", "Export")';
-                } else {
-                    period = $('#periodGptSelect').val();
-                    url = '@Url.Action("ExportAggregatedGpt", "Export")';
+                let period, moCode, url;
+
+                switch(type) {
+                    case 'GST':
+                        period = $('#periodGstSelect').val();
+                        moCode = $('#moGstSelect').val();
+                        url = '@Url.Action("ExportAggregatedGst", "Export")';
+                        break;
+                    case 'GPT':
+                        period = $('#periodGptSelect').val();
+                        moCode = $('#moGptSelect').val();
+                        url = '@Url.Action("ExportAggregatedGpt", "Export")';
+                        break;
+                    default:
+                        return;
                 }
-                
+
                 let params = [];
                 if (period) params.push(`period=${encodeURIComponent(period)}`);
-                
+                if (moCode) params.push(`moCode=${encodeURIComponent(moCode)}`);
+
                 const fullUrl = params.length > 0 ? `${url}?${params.join('&')}` : url;
                 window.location.href = fullUrl;
             };
 
             // ==========================================
-            // ЗАПОЛНЕНИЕ ФИЛЬТРА ПЕРИОДОВ
+            // ФИЛЬТРЫ
             // ==========================================
-            function populatePeriodFilter() {
-                const periods = new Set();
-                $('#documentsTable tbody tr').each(function() {
-                    const period = $(this).find('td:eq(5)').text().trim();
-                    if (period && period !== '-') {
-                        periods.add(period);
-                    }
-                });
-
-                const select = $('#periodFilter');
-                select.empty();
-                select.append('<option value="">Все периоды</option>');
-
-                const sortedPeriods = Array.from(periods).sort().reverse();
-                sortedPeriods.forEach(p => {
-                    const parts = p.split('-');
-                    let displayText = p;
-                    if (parts.length === 2) {
-                        const monthNames = {
-                            '01': 'Январь', '02': 'Февраль', '03': 'Март',
-                            '04': 'Апрель', '05': 'Май', '06': 'Июнь',
-                            '07': 'Июль', '08': 'Август', '09': 'Сентябрь',
-                            '10': 'Октябрь', '11': 'Ноябрь', '12': 'Декабрь'
-                        };
-                        displayText = `${monthNames[parts[1]] || parts[1]} ${parts[0]}`;
-                    }
-                    select.append(`<option value="${p}">${displayText}</option>`);
-                });
-            }
-
-            // ==========================================
-            // ФИЛЬТРАЦИЯ ТАБЛИЦЫ
-            // ==========================================
-            function filterTable() {
-                const search = $('#searchInput').val().toLowerCase();
+            $('#applyFilters').on('click', function() {
+                const search = $('#searchInput').val();
                 const type = $('#typeFilter').val();
-                const hospital = $('#hospitalFilter').val().toLowerCase();
+                const hospital = $('#hospitalFilter').val();
                 const period = $('#periodFilter').val();
                 const status = $('#statusFilter').val();
 
-                let visibleCount = 0;
-                $('#documentsTable tbody tr').each(function() {
-                    const row = $(this);
-                    const name = row.find('td:eq(2)').text().toLowerCase();
-                    const fileType = row.find('td:eq(3)').text().trim();
-                    const hospitalCode = row.find('td:eq(4)').text().toLowerCase();
-                    const periodText = row.find('td:eq(5)').text().trim();
-                    const statusText = row.find('td:eq(7)').text().trim();
+                let url = '@Url.Action("Index")';
+                let params = [];
+                if (search) params.push(`search=${encodeURIComponent(search)}`);
+                if (type) params.push(`type=${encodeURIComponent(type)}`);
+                if (hospital) params.push(`hospital=${encodeURIComponent(hospital)}`);
+                if (period) params.push(`period=${encodeURIComponent(period)}`);
+                if (status) params.push(`status=${encodeURIComponent(status)}`);
 
-                    let show = true;
-                    if (search && !name.includes(search) && !hospitalCode.includes(search)) show = false;
-                    if (type && fileType !== type) show = false;
-                    if (hospital && !hospitalCode.includes(hospital)) show = false;
-                    if (period && periodText !== period) show = false;
-                    if (status) {
-                        const isSuccess = statusText.includes('Успешно');
-                        if (status === 'success' && !isSuccess) show = false;
-                        if (status === 'error' && isSuccess) show = false;
-                    }
+                if (params.length > 0) {
+                    window.location.href = url + '?' + params.join('&');
+                } else {
+                    window.location.href = url;
+                }
+            });
 
-                    row.toggle(show);
-                    if (show) visibleCount++;
-                });
-
-                $('#recordCount').text(visibleCount);
-                paginate();
-            }
-
-            $('#applyFilters').on('click', filterTable);
             $('#resetFilters').on('click', function() {
-                $('#searchInput').val('');
-                $('#typeFilter').val('');
-                $('#hospitalFilter').val('');
-                $('#periodFilter').val('');
-                $('#statusFilter').val('');
-                filterTable();
+                window.location.href = '@Url.Action("Index")';
             });
 
-            $('.filter-group input').on('keypress', function(e) {
-                if (e.key === 'Enter') filterTable();
+            $('.filter-group input, .filter-group select').on('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    $('#applyFilters').click();
+                }
             });
 
             // ==========================================
-            // ПАГИНАЦИЯ
+            // ПРОВЕРКА ДОКУМЕНТА
             // ==========================================
-            let currentPage = 1;
-            const rowsPerPage = 50;
+            window.checkDocument = function(id) {
+                const btn = $(`button[onclick="checkDocument(${id})"]`);
+                btn.html('<i class="fas fa-spinner fa-spin"></i>');
+                btn.prop('disabled', true);
 
-            function paginate() {
-                const rows = $('#documentsTable tbody tr:visible');
-                const totalRows = rows.length;
-                const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
+                const token = $('input[name="__RequestVerificationToken"]').val();
 
-                rows.hide();
-                const start = (currentPage - 1) * rowsPerPage;
-                const end = Math.min(start + rowsPerPage, totalRows);
-                rows.slice(start, end).show();
-
-                let html = '';
-                if (currentPage > 1) {
-                    html += `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage - 1}">«</a></li>`;
-                }
-                for (let i = 1; i <= Math.min(totalPages, 7); i++) {
-                    html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
-                                <a class="page-link" href="#" data-page="${i}">${i}</a>
-                            </li>`;
-                }
-                if (totalPages > 7) {
-                    html += `<li class="page-item"><span class="page-link">…</span></li>`;
-                    html += `<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a></li>`;
-                }
-                if (currentPage < totalPages) {
-                    html += `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage + 1}">»</a></li>`;
-                }
-                $('#paginationControls').html(html);
-            }
-
-            $(document).on('click', '.page-link', function(e) {
-                e.preventDefault();
-                const page = $(this).data('page');
-                if (page) {
-                    currentPage = parseInt(page);
-                    paginate();
-                }
-            });
-
-            $('#pageSize').on('change', function() {
-                location.reload();
-            });
-
-            // ==========================================
-            // УДАЛЕНИЕ
-            // ==========================================
-            window.deleteDocument = function(id) {
-                if (confirm('Удалить документ #' + id + '?')) {
-                    $.ajax({
-                        url: '@Url.Action("Delete", "Export")',
-                        type: 'POST',
-                        data: { id: id },
-                        headers: {
-                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
-                        },
-                        success: function(response) {
-                            if (response.success) {
-                                location.reload();
-                            } else {
-                                alert(response.message || 'Ошибка при удалении');
-                            }
-                        },
-                        error: function() {
-                            alert('Ошибка при удалении');
+                $.ajax({
+                    url: '@Url.Action("CheckDocument", "Export")',
+                    type: 'POST',
+                    data: { documentId: id },
+                    headers: {
+                        'RequestVerificationToken': token
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            alert('✅ ' + response.message);
+                            location.reload();
+                        } else {
+                            const errors = response.errors ? response.errors.join('\n') : response.message;
+                            alert('❌ Ошибки проверки:\n' + errors);
+                            location.reload();
                         }
-                    });
-                }
+                    },
+                    error: function(xhr) {
+                        alert('❌ Ошибка: ' + (xhr.responseJSON?.message || 'Неизвестная ошибка'));
+                        location.reload();
+                    }
+                });
             };
 
             // ==========================================
-            // ИНИЦИАЛИЗАЦИЯ
+            // МАССОВАЯ ПРОВЕРКА
             // ==========================================
-            populatePeriodFilter();
-            setTimeout(paginate, 100);
-
-            function updateMenuCount() {
-                const total = $('#documentsTable tbody tr').length;
-                const badge = $('#docCount');
-                if (badge.length) {
-                    badge.text(total);
+            window.checkAllDocuments = function() {
+                if (!confirm('Запустить проверку всех документов со статусом "Загружен" или "Ошибка"?')) {
+                    return;
                 }
-            }
-            updateMenuCount();
+
+                const btn = $('.btn-success-custom');
+                btn.html('<i class="fas fa-spinner fa-spin"></i> Проверка...');
+                btn.prop('disabled', true);
+
+                const token = $('input[name="__RequestVerificationToken"]').val();
+
+                $.ajax({
+                    url: '@Url.Action("CheckAllDocuments", "Export")',
+                    type: 'POST',
+                    headers: {
+                        'RequestVerificationToken': token
+                    },
+                    success: function(response) {
+                        alert(`✅ Проверка завершена!\nПроверено: ${response.total}\nУспешно: ${response.checkedCount}\nОшибок: ${response.errorCount}`);
+                        location.reload();
+                    },
+                    error: function() {
+                        alert('❌ Ошибка при массовой проверке');
+                        location.reload();
+                    }
+                });
+            };
+
+            // ==========================================
+            // УДАЛЕНИЕ ДОКУМЕНТА
+            // ==========================================
+            window.deleteDocument = function(id) {
+                if (!confirm('Удалить документ #' + id + '?')) {
+                    return;
+                }
+
+                const token = $('input[name="__RequestVerificationToken"]').val();
+
+                $.ajax({
+                    url: '@Url.Action("Delete", "Export")',
+                    type: 'POST',
+                    data: { id: id },
+                    headers: {
+                        'RequestVerificationToken': token
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            location.reload();
+                        } else {
+                            alert(response.message || 'Ошибка при удалении');
+                        }
+                    },
+                    error: function() {
+                        alert('Ошибка при удалении');
+                    }
+                });
+            };
+
+            // ==========================================
+            // ОБНОВЛЕНИЕ СТАТУСОВ
+            // ==========================================
+            window.refreshStatusCounts = function() {
+                $.get('@Url.Action("GetStatusCounts", "Export")', function(data) {
+                    $('#statusUploaded').text(data.uploaded || 0);
+                    $('#statusChecking').text(data.checking || 0);
+                    $('#statusReady').text(data.ready || 0);
+                    $('#statusError').text(data.error || 0);
+                });
+            };
+
+            // Обновляем статусы каждые 10 секунд
+            setInterval(refreshStatusCounts, 10000);
 
         });
     </script>

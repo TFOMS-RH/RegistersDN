@@ -23,7 +23,6 @@ public class AdminController : Controller
         _logger = logger;
     }
 
-    // Список пользователей
     public async Task<IActionResult> Users()
     {
         var users = _userManager.Users.ToList();
@@ -47,7 +46,6 @@ public class AdminController : Controller
         return View(userViewModels);
     }
 
-    // Страница добавления пользователя
     [HttpGet]
     public IActionResult Register()
     {
@@ -70,17 +68,16 @@ public class AdminController : Controller
             UserName = model.Email,
             Email = model.Email,
             FullName = model.FullName,
-            HospitalCode = model.HospitalCode,
+            HospitalCode = model.Role == "MO" ? model.HospitalCode : null,
             RegionCode = model.RegionCode,
             CreatedAt = DateTime.Now,
-            IsActive = true  
+            IsActive = true
         };
 
         var result = await _userManager.CreateAsync(user, model.Password);
 
         if (result.Succeeded)
         {
-            // Назначаем выбранную роль
             if (!string.IsNullOrEmpty(model.Role))
             {
                 await _userManager.AddToRoleAsync(user, model.Role);
@@ -100,7 +97,6 @@ public class AdminController : Controller
         return View(model);
     }
 
-    // Блокировка/разблокировка пользователя
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleUserStatus(string id)
@@ -116,7 +112,6 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Users));
     }
 
-    // Удаление пользователя
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteUser(string id)
@@ -125,7 +120,6 @@ public class AdminController : Controller
         if (user == null)
             return NotFound();
 
-        // Нельзя удалить самого себя
         if (user.Email == User.Identity?.Name)
         {
             TempData["Error"] = "Нельзя удалить самого себя";

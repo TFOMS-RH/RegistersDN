@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+    <xs:element name="DISP">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="ZGLV" type="ZGLV_Type" />
+                <xs:element name="ZAP" type="ZAP_Type" maxOccurs="unbounded" />
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:complexType name="ZGLV_Type">
+        <xs:sequence>
+            <xs:element name="VERSION" type="Version_Type" />
+            <xs:element name="DATA" type="Date_Type" />
+            <xs:element name="FILENAME" type="FileName_Type" />
+            <xs:element name="REGION_CD" type="RegionCd_Type" />
+            <xs:element name="PERIOD" type="Period_Type" />
+            <xs:element name="SD_Z" type="SdZ_Type" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ZAP_Type">
+        <xs:sequence>
+            <xs:element name="MASTER_PERSON_ID" type="MasterPersonId_Type" />
+            <xs:element name="ENP" type="Enp_Type" />
+            <xs:element name="DR" type="Date_Type" />
+            <xs:element name="POL_NAME" type="PolName_Type" />
+            <xs:element name="SMO" type="Smo_Type" />
+            <xs:element name="ATTACH_MO_CD" type="AttachMoCd_Type" />
+            <xs:element name="ATTACH_MO_VERS" type="AttachMoVers_Type" />
+            <xs:element name="ATTACH_DATE" type="Date_Type" minOccurs="0" />
+            <xs:element name="SMO_REGION_CD" type="SmoRegionCd_Type" />
+            <xs:element name="DISPANS_TYPE" type="DispansType_Type" />
+            <xs:element name="DISPANS_TYPE_NAME" type="DispansTypeName_Type" />
+            <xs:element name="DISPANS_STATUS" type="DispansStatus_Type" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="Version_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="D1\.00" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="Date_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d{4}-\d{2}-\d{2}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="FileName_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="RegionCd_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d{2}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="Period_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d{6}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="SdZ_Type">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="MasterPersonId_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="50" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="Enp_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="20" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="PolName_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="Smo_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="5" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="AttachMoCd_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="AttachMoVers_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="SmoRegionCd_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DispansType_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DispansTypeName_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="100" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DispansStatus_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="10" />
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

@@ -9,9 +9,9 @@ public class AutoMapperProfile : Profile
 {
     public AutoMapperProfile()
     {
-
+        // ============================================
         // GST: IMPORT DTO → ENTITY
-
+        // ============================================
         CreateMap<GstImportRecord, GstEntity>()
             .ForMember(dest => dest.DiagDate,
                 opt => opt.MapFrom(src => ParseDate(src.DiagDate)))
@@ -29,9 +29,9 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
 
-
-        // GSM: IMPORT DTO → ENTITY (полный аналог GST)
-
+        // ============================================
+        // GSM: IMPORT DTO → ENTITY
+        // ============================================
         CreateMap<GsmImportRecord, GstEntity>()
             .ForMember(dest => dest.DiagDate,
                 opt => opt.MapFrom(src => ParseDate(src.DiagDate)))
@@ -49,9 +49,9 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
 
-
+        // ============================================
         // GPT: IMPORT DTO → ENTITY
-
+        // ============================================
         CreateMap<GptImportRecord, GptEntity>()
             .ForMember(dest => dest.EndDateInf,
                 opt => opt.MapFrom(src => ParseDate(src.EndDateInf) ?? DateTime.Now))
@@ -65,9 +65,9 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
 
-
-        // GPM: IMPORT DTO → ENTITY (полный аналог GPT)
-
+        // ============================================
+        // GPM: IMPORT DTO → ENTITY
+        // ============================================
         CreateMap<GpmImportRecord, GptEntity>()
             .ForMember(dest => dest.EndDateInf,
                 opt => opt.MapFrom(src => ParseDate(src.EndDateInf) ?? DateTime.Now))
@@ -81,16 +81,14 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
 
-
-        // GF: IMPORT DTO → ENTITY
-
+        // GF: Import DTO → Entity (все поля строковые)
         CreateMap<GfImportRecord, GfEntity>()
             .ForMember(dest => dest.DnPatientId,
                 opt => opt.MapFrom(src => src.DnPatientId))
             .ForMember(dest => dest.ENP,
                 opt => opt.MapFrom(src => src.ENP))
             .ForMember(dest => dest.Gender,
-                opt => opt.MapFrom(src => src.Gender))
+                opt => opt.MapFrom(src => ParseInt(src.Gender)))
             .ForMember(dest => dest.BirthDate,
                 opt => opt.MapFrom(src => ParseDate(src.BirthDate)))
             .ForMember(dest => dest.Smo,
@@ -102,19 +100,20 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.SmoRegionCode,
                 opt => opt.MapFrom(src => src.SmoRegionCode))
             .ForMember(dest => dest.GroupRhCode,
-                opt => opt.MapFrom(src => src.GroupRhCode))
+                opt => opt.MapFrom(src => ParseInt(src.GroupRhCode)))
             .ForMember(dest => dest.GroupRhDs,
                 opt => opt.MapFrom(src => src.GroupRhDs))
             .ForMember(dest => dest.DnPrvs,
-                opt => opt.MapFrom(src => src.DnPrvs))
+                opt => opt.MapFrom(src => ParseInt(src.DnPrvs)))
             .ForMember(dest => dest.GroupRhProfile,
                 opt => opt.MapFrom(src => src.GroupRhProfile))
             .ForMember(dest => dest.GroupRhName,
                 opt => opt.MapFrom(src => src.GroupRhName))
             .ForMember(dest => dest.DnRuleInName,
                 opt => opt.MapFrom(src => src.DnRuleInName))
+            // DN_LIST
             .ForMember(dest => dest.DnListPeriodCode,
-                opt => opt.MapFrom(src => src.DnList != null ? src.DnList.DnListPeriodCode : (int?)null))
+                opt => opt.MapFrom(src => src.DnList != null ? ParseInt(src.DnList.DnListPeriodCode) : null))
             .ForMember(dest => dest.DnListFilename,
                 opt => opt.MapFrom(src => src.DnList != null ? src.DnList.DnListFilename : null))
             .ForMember(dest => dest.CodeL,
@@ -125,6 +124,7 @@ public class AutoMapperProfile : Profile
                 opt => opt.MapFrom(src => src.DnList != null ? ParseDate(src.DnList.DnListDateChecking) : null))
             .ForMember(dest => dest.DnListResultDescr,
                 opt => opt.MapFrom(src => src.DnList != null ? src.DnList.DnListResultDescr : null))
+            // DN_PLAN
             .ForMember(dest => dest.DnPlanPeriod,
                 opt => opt.MapFrom(src => src.DnPlan != null ? src.DnPlan.DnPlanPeriod : null))
             .ForMember(dest => dest.DnPlanFilename,
@@ -132,11 +132,12 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.CodeP,
                 opt => opt.MapFrom(src => src.DnPlan != null ? src.DnPlan.CodeP : null))
             .ForMember(dest => dest.DnPlanResultCode,
-                opt => opt.MapFrom(src => src.DnPlan != null ? src.DnPlan.DnPlanResultCode : (int?)null))
+                opt => opt.MapFrom(src => src.DnPlan != null ? ParseInt(src.DnPlan.DnPlanResultCode) : null))
             .ForMember(dest => dest.DnPlanDateChecking,
                 opt => opt.MapFrom(src => src.DnPlan != null ? ParseDate(src.DnPlan.DnPlanDateChecking) : null))
             .ForMember(dest => dest.DnPlanResultDescr,
                 opt => opt.MapFrom(src => src.DnPlan != null ? src.DnPlan.DnPlanResultDescr : null))
+            // DN_GIS
             .ForMember(dest => dest.TriggerSchetnFilename,
                 opt => opt.MapFrom(src => src.DnGis != null ? src.DnGis.TriggerSchetnFilename : null))
             .ForMember(dest => dest.TriggerSchetnCode,
@@ -157,6 +158,7 @@ public class AutoMapperProfile : Profile
                 opt => opt.MapFrom(src => src.DnGis != null ? src.DnGis.TriggerMcode : null))
             .ForMember(dest => dest.TriggerDt,
                 opt => opt.MapFrom(src => src.DnGis != null ? ParseDate(src.DnGis.TriggerDt) : null))
+            // Служебные
             .ForMember(dest => dest.InsertDttm,
                 opt => opt.MapFrom(src => ParseDate(src.InsertDttm) ?? DateTime.Now))
             .ForMember(dest => dest.UpdateDttm,
@@ -166,9 +168,9 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.Document, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
 
-
+        // ============================================
         // ENTITY → EXPORT DTO
-
+        // ============================================
 
         // GST: Entity → Export
         CreateMap<GstEntity, GstExportRecord>()
@@ -183,7 +185,7 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.DateChecking,
                 opt => opt.MapFrom(src => src.DateChecking.ToString("yyyy-MM-dd")));
 
-        // GSM: Entity → Export (полный аналог GST)
+        // GSM: Entity → Export
         CreateMap<GstEntity, GsmExportRecord>()
             .ForMember(dest => dest.DiagDate,
                 opt => opt.MapFrom(src => src.DiagDate != null ? src.DiagDate.Value.ToString("yyyy-MM-dd") : null))
@@ -205,7 +207,7 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.PlanDateEnd,
                 opt => opt.MapFrom(src => src.PlanDateEnd.ToString("yyyy-MM-dd")));
 
-        // GPM: Entity → Export (полный аналог GPT)
+        // GPM: Entity → Export
         CreateMap<GptEntity, GpmExportRecord>()
             .ForMember(dest => dest.EndDateInf,
                 opt => opt.MapFrom(src => src.EndDateInf.ToString("yyyy-MM-dd")))
@@ -213,6 +215,19 @@ public class AutoMapperProfile : Profile
                 opt => opt.MapFrom(src => src.PlanDateStart.ToString("yyyy-MM-dd")))
             .ForMember(dest => dest.PlanDateEnd,
                 opt => opt.MapFrom(src => src.PlanDateEnd.ToString("yyyy-MM-dd")));
+
+
+        CreateMap<DfImportRecord, DfEntity>()
+            .ForMember(dest => dest.BirthDate, opt => opt.MapFrom(src => ParseDate(src.BirthDate)))
+            .ForMember(dest => dest.AttachDate, opt => opt.MapFrom(src => ParseDate(src.AttachDate)))
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.DocumentId, opt => opt.Ignore())
+            .ForMember(dest => dest.Document, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
+
+        CreateMap<DfEntity, DfExportRecord>()
+            .ForMember(dest => dest.BirthDate, opt => opt.MapFrom(src => src.BirthDate != null ? src.BirthDate.Value.ToString("yyyy-MM-dd") : null))
+            .ForMember(dest => dest.AttachDate, opt => opt.MapFrom(src => src.AttachDate != null ? src.AttachDate.Value.ToString("yyyy-MM-dd") : null));
 
         // GF: Entity → Export
         CreateMap<GfEntity, GfExportRecord>()
@@ -284,6 +299,10 @@ public class AutoMapperProfile : Profile
                 }));
     }
 
+    // ==========================================
+    // ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
+    // ==========================================
+
     private DateTime? ParseDate(string? dateString)
     {
         if (string.IsNullOrWhiteSpace(dateString))
@@ -291,6 +310,17 @@ public class AutoMapperProfile : Profile
 
         if (DateTime.TryParse(dateString, out var date))
             return date;
+
+        return null;
+    }
+
+    private int? ParseInt(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        if (int.TryParse(value, out var result))
+            return result;
 
         return null;
     }

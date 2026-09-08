@@ -1,0 +1,165 @@
+@using RegistrDN.Models.Enums
+@model RegistrDN.Models.Entities.DnDocumentEntity
+
+@{
+    ViewData["Title"] = "Детали документа";
+}
+
+<div class="page-header">
+    <div>
+        <h1>📄 Детали документа</h1>
+        <span class="subtitle">@Model.FileName</span>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Index" class="btn-outline-custom">
+            <i class="fas fa-arrow-left"></i> Назад
+        </a>
+        @if (Model.Status == DocumentStatus.Ready || User.IsInRole("Admin"))
+        {
+            <a href="@Url.Action("Export" + Model.FileType, "Export", new { documentId = Model.Id })" 
+               class="btn-primary-custom">
+                <i class="fas fa-download"></i> Скачать
+            </a>
+        }
+        @if (Model.Status == DocumentStatus.Uploaded || Model.Status == DocumentStatus.Error)
+        {
+            <button class="btn-success-custom" onclick="checkDocument(@Model.Id)">
+                <i class="fas fa-check"></i> Проверить
+            </button>
+        }
+    </div>
+</div>
+
+<!-- Информация о документе -->
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="table-wrapper" style="padding: 20px;">
+            <h6><i class="fas fa-info-circle"></i> Информация о документе</h6>
+            <hr />
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>ID</strong></div>
+                <div class="col-md-8">@Model.Id</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Имя файла</strong></div>
+                <div class="col-md-8">@Model.FileName</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Тип</strong></div>
+                <div class="col-md-8"><span class="badge-type">@Model.FileType</span></div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Период</strong></div>
+                <div class="col-md-8">@Model.Period</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Код МО</strong></div>
+                <div class="col-md-8">@(!string.IsNullOrEmpty(Model.HospitalCode) ? Model.HospitalCode : "-")</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Количество записей</strong></div>
+                <div class="col-md-8">@(ViewBag.RecordsCount ?? 0)</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Дата загрузки</strong></div>
+                <div class="col-md-8">@Model.UploadDate.ToString("dd.MM.yyyy HH:mm")</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Загрузил</strong></div>
+                <div class="col-md-8">@Model.UploadedBy</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4"><strong>Статус</strong></div>
+                <div class="col-md-8">
+                    <span class="badge-status @Model.Status.GetCssClass()">
+                        @Model.Status.GetDisplayName()
+                    </span>
+                </div>
+            </div>
+            @if (Model.CheckedAt.HasValue)
+            {
+                <div class="row mb-2">
+                    <div class="col-md-4"><strong>Дата проверки</strong></div>
+                    <div class="col-md-8">@Model.CheckedAt.Value.ToString("dd.MM.yyyy HH:mm")</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-4"><strong>Проверил</strong></div>
+                    <div class="col-md-8">@Model.CheckedBy</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-4"><strong>Попыток проверки</strong></div>
+                    <div class="col-md-8">@Model.CheckAttempts</div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="table-wrapper" style="padding: 20px;">
+            <h6><i class="fas fa-exclamation-triangle"></i> Ошибки валидации</h6>
+            <hr />
+            @if (!string.IsNullOrEmpty(Model.ValidationErrors))
+            {
+                <div class="alert alert-danger">
+                    <pre style="white-space: pre-wrap; word-wrap: break-word; margin:0; font-size:13px;">@Model.ValidationErrors</pre>
+                </div>
+            }
+            else if (Model.Status == DocumentStatus.Ready)
+            {
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> Ошибок нет. Документ готов к экспорту.
+                </div>
+            }
+            else if (Model.Status == DocumentStatus.Checking)
+            {
+                <div class="alert alert-warning">
+                    <i class="fas fa-spinner fa-spin"></i> Документ проверяется...
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Проверка еще не выполнена.
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // ==========================================
+        // ПРОВЕРКА ДОКУМЕНТА
+        // ==========================================
+        window.checkDocument = function(id) {
+            if (!confirm('Запустить проверку документа?')) return;
+
+            const btn = document.querySelector('.btn-success-custom');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Проверка...';
+            btn.disabled = true;
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+            $.ajax({
+                url: '@Url.Action("CheckDocument", "Export")',
+                type: 'POST',
+                data: { documentId: id },
+                headers: {
+                    'RequestVerificationToken': token
+                },
+                success: function(response) {
+                    if (response.success) {
+                        alert('✅ ' + response.message);
+                    } else {
+                        alert('❌ Ошибки проверки:\n' + (response.errors ? response.errors.join('\n') : response.message));
+                    }
+                    location.reload();
+                },
+                error: function() {
+                    alert('❌ Ошибка при проверке');
+                    location.reload();
+                }
+            });
+        };
+    </script>
+}
